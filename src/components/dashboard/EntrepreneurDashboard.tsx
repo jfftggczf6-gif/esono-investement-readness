@@ -19,6 +19,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import BmcViewer from './BmcViewer';
+import DeliverableViewer from './DeliverableViewer';
 
 const MODULE_CONFIG = [
   { code: 'bmc' as const, title: 'Business Model Canvas', description: 'Analysez votre modèle économique', icon: LayoutGrid, category: 'hybrid' as const, step: 1 },
@@ -476,21 +477,44 @@ export default function EntrepreneurDashboard() {
                   </Card>
                 );
               })()}
-              {selectedModule !== 'bmc' && (
-                <Card className="flex flex-col items-center justify-center py-20 text-center">
-                  {(() => {
-                    const mod = MODULE_CONFIG.find(m => m.code === selectedModule);
-                    const Icon = mod?.icon || FileText;
-                    return (
-                      <>
-                        <Icon className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                        <h3 className="font-display font-semibold text-lg mb-2">{mod?.title}</h3>
-                        <p className="text-sm text-muted-foreground">Agent IA à venir — en cours de développement</p>
-                      </>
-                    );
-                  })()}
-                </Card>
-              )}
+              {selectedModule !== 'bmc' && (() => {
+                const mod = MODULE_CONFIG.find(m => m.code === selectedModule);
+                const Icon = mod?.icon || FileText;
+                // Map module code to deliverable type
+                const delivTypeMap: Record<string, string> = {
+                  sic: 'sic_analysis', inputs: 'inputs_data', framework: 'framework_data',
+                  diagnostic: 'diagnostic_data', plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
+                };
+                const delivType = delivTypeMap[selectedModule];
+                const deliv = delivType ? getDeliverable(delivType) : null;
+
+                if (deliv?.data && typeof deliv.data === 'object') {
+                  return <DeliverableViewer moduleCode={selectedModule} data={deliv.data} />;
+                }
+
+                return (
+                  <Card className="flex flex-col items-center justify-center py-20 text-center">
+                    <Icon className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                    <h3 className="font-display font-semibold text-lg mb-2">{mod?.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {mod?.category === 'hybrid'
+                        ? "Uploadez vos documents puis générez l'analyse par l'IA"
+                        : "Ce module sera généré automatiquement par l'IA"}
+                    </p>
+                    <Button
+                      onClick={() => handleGenerateModule(selectedModule)}
+                      disabled={!!generatingModule}
+                      className="gap-2"
+                    >
+                      {generatingModule === selectedModule ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Génération...</>
+                      ) : (
+                        <><Sparkles className="h-4 w-4" /> Générer {mod?.title}</>
+                      )}
+                    </Button>
+                  </Card>
+                );
+              })()}
             </div>
 
             {/* Horizontal module bar (like reference) */}
