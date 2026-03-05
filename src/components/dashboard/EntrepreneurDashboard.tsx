@@ -454,9 +454,11 @@ export default function EntrepreneurDashboard() {
             {DELIVERABLE_CONFIG.map(dc => {
               const deliv = getDeliverable(dc.type);
               const isReady = !!deliv;
+              const downloadFormat = dc.ext === '.xlsx' ? 'csv' : dc.ext === '.docx' ? 'html' : 'html';
               return (
                 <div
                   key={dc.type}
+                  onClick={() => isReady && handleDownload(dc.type, downloadFormat)}
                   className={`flex items-center justify-between p-3 rounded-lg border bg-card transition-colors ${
                     isReady ? 'hover:bg-muted/50 cursor-pointer' : 'opacity-60'
                   }`}
@@ -468,13 +470,18 @@ export default function EntrepreneurDashboard() {
                       <p className="text-[10px] text-muted-foreground">{dc.ext}</p>
                     </div>
                   </div>
-                  {isReady ? (
-                    <Badge variant="default" className="text-[10px] bg-success/10 text-success border-success/20">
-                      {deliv.score ? `${deliv.score}/100` : 'Prêt'}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px]">En attente</Badge>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {isReady ? (
+                      <>
+                        <Badge variant="default" className="text-[10px] bg-success/10 text-success border-success/20">
+                          {deliv.score ? `${deliv.score}/100` : 'Prêt'}
+                        </Badge>
+                        <Download className="h-3.5 w-3.5 text-muted-foreground" />
+                      </>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">En attente</Badge>
+                    )}
+                  </div>
                 </div>
               );
             })}
