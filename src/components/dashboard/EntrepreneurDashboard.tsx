@@ -33,14 +33,14 @@ const MODULE_CONFIG = [
 ];
 
 const DELIVERABLE_CONFIG = [
-  { type: 'bmc_analysis', label: 'BMC Analysé', ext: '.html', icon: '📊', color: 'text-info' },
-  { type: 'sic_analysis', label: 'SIC Analysé', ext: '.html', icon: '🌍', color: 'text-info' },
-  { type: 'inputs_data', label: 'Données Financières', ext: '.html', icon: '💰', color: 'text-primary' },
-  { type: 'framework_data', label: 'Framework Financier', ext: '.html', icon: '📈', color: 'text-success' },
-  { type: 'diagnostic_data', label: 'Diagnostic Expert', ext: '.html', icon: '🩺', color: 'text-primary' },
-  { type: 'plan_ovo', label: 'Plan OVO', ext: '.html', icon: '📋', color: 'text-success' },
-  { type: 'business_plan', label: 'Business Plan', ext: '.html', icon: '📄', color: 'text-info' },
-  { type: 'odd_analysis', label: 'Due Diligence ODD', ext: '.html', icon: '✅', color: 'text-success' },
+  { type: 'bmc_analysis', label: 'BMC Analysé', formats: ['html', 'json'], icon: '📊' },
+  { type: 'sic_analysis', label: 'Social Impact Canvas', formats: ['html', 'json'], icon: '🌍' },
+  { type: 'inputs_data', label: 'Données Financières', formats: ['html', 'xlsx', 'csv'], icon: '💰' },
+  { type: 'framework_data', label: 'Framework Financier', formats: ['html', 'xlsx'], icon: '📈' },
+  { type: 'diagnostic_data', label: 'Diagnostic Expert', formats: ['html', 'json'], icon: '🩺' },
+  { type: 'plan_ovo', label: 'Plan Financier OVO', formats: ['html', 'xlsx'], icon: '📋' },
+  { type: 'business_plan', label: 'Business Plan', formats: ['html', 'json'], icon: '📄' },
+  { type: 'odd_analysis', label: 'Due Diligence ODD', formats: ['html', 'json'], icon: '✅' },
 ];
 
 export default function EntrepreneurDashboard() {

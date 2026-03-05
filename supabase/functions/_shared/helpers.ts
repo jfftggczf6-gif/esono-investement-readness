@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,127 @@ export function jsonResponse(data: any, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// ===== DOCX PARSER =====
+export async function parseDocx(arrayBuffer: ArrayBuffer): Promise<string> {
+  try {
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const docXml = await zip.file("word/document.xml")?.async("string");
+    if (!docXml) return "[DOCX: contenu introuvable]";
+
+    // Extract text from XML paragraphs
+    let text = "";
+    const paragraphs = docXml.split(/<w:p[ >]/);
+    for (const para of paragraphs) {
+      const runs = para.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+      const lineText = runs.map(r => {
+        const m = r.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
+        return m ? m[1] : "";
+      }).join("");
+      if (lineText.trim()) text += lineText + "\n";
+    }
+
+    // Also try headers/footers
+    for (const fileName of Object.keys(zip.files)) {
+      if ((fileName.startsWith("word/header") || fileName.startsWith("word/footer")) && fileName.endsWith(".xml")) {
+        const headerXml = await zip.file(fileName)?.async("string");
+        if (headerXml) {
+          const runs = headerXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+          const headerText = runs.map(r => {
+            const m = r.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
+            return m ? m[1] : "";
+          }).join(" ");
+          if (headerText.trim()) text = headerText + "\n---\n" + text;
+        }
+      }
+    }
+
+    return text.trim() || "[DOCX: document vide]";
+  } catch (e) {
+    console.error("DOCX parse error:", e);
+    return "[DOCX: erreur de parsing]";
+  }
+}
+
+// ===== XLSX PARSER =====
+export async function parseXlsx(arrayBuffer: ArrayBuffer): Promise<string> {
+  try {
+    const zip = await JSZip.loadAsync(arrayBuffer);
+
+    // Read shared strings
+    const sharedStringsXml = await zip.file("xl/sharedStrings.xml")?.async("string");
+    const sharedStrings: string[] = [];
+    if (sharedStringsXml) {
+      const matches = sharedStringsXml.match(/<t[^>]*>([^<]*)<\/t>/g) || [];
+      for (const m of matches) {
+        const val = m.match(/<t[^>]*>([^<]*)<\/t>/);
+        sharedStrings.push(val ? val[1] : "");
+      }
+    }
+
+    // Read workbook to get sheet names
+    const workbookXml = await zip.file("xl/workbook.xml")?.async("string");
+    const sheetNames: string[] = [];
+    if (workbookXml) {
+      const nameMatches = workbookXml.match(/<sheet[^>]*name="([^"]*)"[^>]*\/>/g) || [];
+      for (const nm of nameMatches) {
+        const n = nm.match(/name="([^"]*)"/);
+        if (n) sheetNames.push(n[1]);
+      }
+    }
+
+    let result = "";
+    // Parse each sheet
+    const sheetFiles = Object.keys(zip.files).filter(f => f.match(/^xl\/worksheets\/sheet\d+\.xml$/)).sort();
+
+    for (let si = 0; si < sheetFiles.length; si++) {
+      const sheetXml = await zip.file(sheetFiles[si])?.async("string");
+      if (!sheetXml) continue;
+
+      const sheetName = sheetNames[si] || `Feuille ${si + 1}`;
+      result += `\n=== ${sheetName} ===\n`;
+
+      // Parse rows
+      const rows = sheetXml.split(/<row /);
+      for (let ri = 1; ri < rows.length; ri++) {
+        const rowContent = rows[ri];
+        const cells = rowContent.split(/<c /);
+        const rowValues: string[] = [];
+
+        for (let ci = 1; ci < cells.length; ci++) {
+          const cell = cells[ci];
+          const typeMatch = cell.match(/t="([^"]*)"/);
+          const valueMatch = cell.match(/<v>([^<]*)<\/v>/);
+
+          if (!valueMatch) {
+            // Check for inline string
+            const inlineMatch = cell.match(/<is><t>([^<]*)<\/t><\/is>/);
+            rowValues.push(inlineMatch ? inlineMatch[1] : "");
+            continue;
+          }
+
+          const rawValue = valueMatch[1];
+          if (typeMatch && typeMatch[1] === "s") {
+            // Shared string reference
+            const idx = parseInt(rawValue, 10);
+            rowValues.push(sharedStrings[idx] || rawValue);
+          } else {
+            rowValues.push(rawValue);
+          }
+        }
+
+        if (rowValues.some(v => v.trim())) {
+          result += rowValues.join("\t") + "\n";
+        }
+      }
+    }
+
+    return result.trim() || "[XLSX: classeur vide]";
+  } catch (e) {
+    console.error("XLSX parse error:", e);
+    return "[XLSX: erreur de parsing]";
+  }
 }
 
 export async function verifyAndGetContext(req: Request) {
@@ -43,21 +165,34 @@ export async function verifyAndGetContext(req: Request) {
     throw { status: 404, message: "Entreprise non trouvée" };
   }
 
-  // Get uploaded documents content (text-based only)
+  // Get uploaded documents content with DOCX/XLSX parsing
   const { data: files } = await supabase.storage.from("documents").list(enterprise_id);
   let documentContent = "";
   if (files && files.length > 0) {
-    for (const file of files.slice(0, 5)) {
+    for (const file of files.slice(0, 10)) {
       const ext = file.name.split(".").pop()?.toLowerCase();
-      // Skip binary files we can't parse in edge functions
-      if (["docx", "xlsx", "xls", "zip", "png", "jpg", "jpeg", "gif"].includes(ext || "")) {
-        documentContent += `\n\n--- Document: ${file.name} (format binaire, non lisible directement) ---`;
-        continue;
-      }
       const { data: fileData } = await supabase.storage.from("documents").download(`${enterprise_id}/${file.name}`);
-      if (fileData) {
+      if (!fileData) continue;
+
+      if (ext === "docx" || ext === "doc") {
+        const buffer = await fileData.arrayBuffer();
+        const text = await parseDocx(buffer);
+        documentContent += `\n\n--- Document: ${file.name} ---\n${text.substring(0, 20000)}`;
+      } else if (ext === "xlsx" || ext === "xls") {
+        const buffer = await fileData.arrayBuffer();
+        const text = await parseXlsx(buffer);
+        documentContent += `\n\n--- Tableur: ${file.name} ---\n${text.substring(0, 20000)}`;
+      } else if (ext === "csv") {
+        const text = await fileData.text();
+        documentContent += `\n\n--- CSV: ${file.name} ---\n${text.substring(0, 20000)}`;
+      } else if (ext === "txt" || ext === "md") {
         const text = await fileData.text();
         documentContent += `\n\n--- Document: ${file.name} ---\n${text.substring(0, 15000)}`;
+      } else if (ext === "pdf") {
+        // PDF needs specialized parsing - provide metadata only
+        documentContent += `\n\n--- Document: ${file.name} (PDF - ${(file.metadata?.size || 0) / 1024}KB) ---`;
+      } else {
+        documentContent += `\n\n--- Document: ${file.name} (format non supporté) ---`;
       }
     }
   }
@@ -129,4 +264,27 @@ export async function saveDeliverable(supabase: any, enterprise_id: string, type
     .update({ status: "completed", progress: 100, data })
     .eq("enterprise_id", enterprise_id)
     .eq("module", moduleCode);
+}
+
+// ===== UEMOA FISCAL PARAMETERS =====
+export const FISCAL_PARAMS: Record<string, {
+  tva: number; is: number; ir_max: number; smig: number;
+  patente: string; cotisations_sociales: number; devise: string;
+}> = {
+  "Côte d'Ivoire": { tva: 18, is: 25, ir_max: 36, smig: 60000, patente: "0.5% CA", cotisations_sociales: 23.5, devise: "FCFA" },
+  "Sénégal": { tva: 18, is: 30, ir_max: 40, smig: 52500, patente: "Variable", cotisations_sociales: 22, devise: "FCFA" },
+  "Mali": { tva: 18, is: 30, ir_max: 40, smig: 40000, patente: "Variable", cotisations_sociales: 22, devise: "FCFA" },
+  "Burkina Faso": { tva: 18, is: 27.5, ir_max: 35, smig: 34664, patente: "Variable", cotisations_sociales: 21.5, devise: "FCFA" },
+  "Bénin": { tva: 18, is: 30, ir_max: 35, smig: 40000, patente: "Variable", cotisations_sociales: 22.4, devise: "FCFA" },
+  "Togo": { tva: 18, is: 27, ir_max: 35, smig: 35000, patente: "Variable", cotisations_sociales: 21, devise: "FCFA" },
+  "Niger": { tva: 19, is: 30, ir_max: 35, smig: 30047, patente: "Variable", cotisations_sociales: 21.5, devise: "FCFA" },
+  "Guinée-Bissau": { tva: 17, is: 25, ir_max: 30, smig: 19030, patente: "Variable", cotisations_sociales: 18, devise: "FCFA" },
+  "Cameroun": { tva: 19.25, is: 33, ir_max: 35, smig: 41875, patente: "Variable", cotisations_sociales: 18.5, devise: "FCFA" },
+  "Gabon": { tva: 18, is: 30, ir_max: 35, smig: 150000, patente: "Variable", cotisations_sociales: 20.1, devise: "FCFA" },
+  "Congo": { tva: 18.9, is: 28, ir_max: 40, smig: 90000, patente: "Variable", cotisations_sociales: 22.5, devise: "FCFA" },
+  "RDC": { tva: 16, is: 30, ir_max: 40, smig: 7075, patente: "Variable", cotisations_sociales: 13.5, devise: "CDF" },
+};
+
+export function getFiscalParams(country: string) {
+  return FISCAL_PARAMS[country] || FISCAL_PARAMS["Côte d'Ivoire"];
 }
