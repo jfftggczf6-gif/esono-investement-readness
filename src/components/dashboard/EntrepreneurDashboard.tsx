@@ -33,14 +33,14 @@ const MODULE_CONFIG = [
 ];
 
 const DELIVERABLE_CONFIG = [
-  { type: 'bmc_analysis', label: 'BMC Analysé', ext: '.docx', icon: '📄', color: 'text-info' },
-  { type: 'sic_analysis', label: 'SIC Analysé', ext: '.docx', icon: '📄', color: 'text-info' },
-  { type: 'inputs_html', label: 'Inputs HTML', ext: '.html', icon: '🌐', color: 'text-primary' },
-  { type: 'framework_data', label: 'Framework Excel', ext: '.xlsx', icon: '📊', color: 'text-success' },
-  { type: 'diagnostic_data', label: 'Diagnostic Expert', ext: '.html', icon: '🌐', color: 'text-primary' },
-  { type: 'plan_ovo', label: 'Plan OVO', ext: '.xlsx', icon: '📊', color: 'text-success' },
-  { type: 'business_plan', label: 'Business Plan', ext: '.docx', icon: '📄', color: 'text-info' },
-  { type: 'odd_analysis', label: 'Due Diligence ODD', ext: '.xlsx', icon: '📊', color: 'text-success' },
+  { type: 'bmc_analysis', label: 'BMC Analysé', ext: '.html', icon: '📊', color: 'text-info' },
+  { type: 'sic_analysis', label: 'SIC Analysé', ext: '.html', icon: '🌍', color: 'text-info' },
+  { type: 'inputs_data', label: 'Données Financières', ext: '.html', icon: '💰', color: 'text-primary' },
+  { type: 'framework_data', label: 'Framework Financier', ext: '.html', icon: '📈', color: 'text-success' },
+  { type: 'diagnostic_data', label: 'Diagnostic Expert', ext: '.html', icon: '🩺', color: 'text-primary' },
+  { type: 'plan_ovo', label: 'Plan OVO', ext: '.html', icon: '📋', color: 'text-success' },
+  { type: 'business_plan', label: 'Business Plan', ext: '.html', icon: '📄', color: 'text-info' },
+  { type: 'odd_analysis', label: 'Due Diligence ODD', ext: '.html', icon: '✅', color: 'text-success' },
 ];
 
 export default function EntrepreneurDashboard() {
@@ -148,7 +148,12 @@ export default function EntrepreneurDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Non authentifié");
 
-      const functionName = `generate-${moduleCode}`;
+      const fnMap: Record<string, string> = {
+        bmc: 'generate-bmc', sic: 'generate-sic', inputs: 'generate-inputs',
+        framework: 'generate-framework', diagnostic: 'generate-diagnostic',
+        plan_ovo: 'generate-plan-ovo', business_plan: 'generate-business-plan', odd: 'generate-odd',
+      };
+      const functionName = fnMap[moduleCode] || `generate-${moduleCode}`;
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`,
         {

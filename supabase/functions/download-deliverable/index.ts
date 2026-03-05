@@ -145,8 +145,8 @@ serve(async (req) => {
     }
 
     const titleMap: Record<string, string> = {
-      bmc_analysis: "Business Model Canvas - Analyse",
-      sic_analysis: "Social Impact Canvas - Analyse",
+      bmc_analysis: "Business Model Canvas",
+      sic_analysis: "Social Impact Canvas",
       inputs_data: "Données Financières",
       inputs_html: "Données Financières",
       framework_data: "Framework Analyse Financière",
