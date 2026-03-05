@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SelectRole from "./pages/SelectRole";
 import Dashboard from "./pages/Dashboard";
+import Livrables from "./pages/Livrables";
 import BmcModule from "./pages/modules/BmcModule";
 import GenericModule from "./pages/modules/GenericModule";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,9 @@ const App = () => (
             } />
             <Route path="/dashboard" element={
               <ProtectedRoute><Dashboard /></ProtectedRoute>
+            } />
+            <Route path="/livrables" element={
+              <ProtectedRoute><Livrables /></ProtectedRoute>
             } />
             <Route path="/module/bmc" element={
               <ProtectedRoute><BmcModule /></ProtectedRoute>
