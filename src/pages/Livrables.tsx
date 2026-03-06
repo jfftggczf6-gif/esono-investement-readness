@@ -51,7 +51,7 @@ export default function Livrables() {
       const response = await fetch(url, { headers: { Authorization: `Bearer ${session.access_token}` } });
       if (!response.ok) throw new Error('Erreur de téléchargement');
       const blob = await response.blob();
-      const ext = format === 'csv' ? '.csv' : format === 'json' ? '.json' : '.html';
+      const ext = format === 'csv' ? '.csv' : format === 'json' ? '.json' : format === 'xlsx' ? '.xlsx' : '.html';
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `${enterprise.name.replace(/[^a-zA-Z0-9]/g, '_')}_${type}${ext}`;
