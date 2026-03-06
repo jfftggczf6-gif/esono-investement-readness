@@ -2,23 +2,29 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable } from "../_shared/helpers.ts";
 import { normalizeInputs } from "../_shared/normalizers.ts";
 
-const SYSTEM_PROMPT = `Tu es un expert-comptable spécialisé dans les PME africaines (zone UEMOA/CEMAC). Tu extrais et structures les données financières à partir de documents.
-IMPORTANT: Réponds UNIQUEMENT en JSON valide. Tous les montants en FCFA.`;
+const SYSTEM_PROMPT = `Tu es un analyste financier senior spécialisé PME africaines (zone UEMOA/CEMAC). Tu réalises un FRAMEWORK D'ANALYSE FINANCIÈRE complet incluant diagnostic, projections, scénarios et recommandations opérationnelles.
+IMPORTANT: Réponds UNIQUEMENT en JSON valide. Montants en FCFA. Sois très précis et détaillé.`;
 
 const userPrompt = (name: string, sector: string, country: string, docs: string, bmcData: any) => `
-Analyse les données financières de "${name}" (Secteur: ${sector}, Pays: ${country}).
+Réalise le FRAMEWORK D'ANALYSE FINANCIÈRE PME complet pour "${name}" (Secteur: ${sector}, Pays: ${country}).
 
-${bmcData?.canvas ? `DONNÉES BMC (flux revenus, structure coûts):\n${JSON.stringify({
-  flux_revenus: bmcData.canvas?.flux_revenus,
-  structure_couts: bmcData.canvas?.structure_couts
-}, null, 2)}` : ""}
+${bmcData?.canvas ? `DONNÉES BMC:\n${JSON.stringify(bmcData, null, 2)}` : ""}
 ${docs ? `DOCUMENTS FINANCIERS:\n${docs}` : ""}
 
-Extrais et structure les données financières en JSON:
+Génère le framework complet en JSON:
 {
-  "score": <0-100>,
-  "periode": "<ex: 2023-2025>",
+  "score": <0-100 score d'investissabilité>,
+  "periode": "<ex: Année N (Source Excel 2024)>",
   "devise": "FCFA",
+  "fiabilite": "<Élevée|Moyenne|Faible>",
+
+  "kpis": {
+    "marge_ebitda": "<xx%>",
+    "ca_annee_n": <number>,
+    "ebitda": <number>,
+    "ca_an5_projete": <number>
+  },
+
   "compte_resultat": {
     "chiffre_affaires": <number>,
     "achats_matieres": <number>,
@@ -29,6 +35,7 @@ Extrais et structure les données financières en JSON:
     "charges_financieres": <number>,
     "resultat_net": <number>
   },
+
   "bilan": {
     "actif": {
       "immobilisations": <number>,
@@ -45,19 +52,120 @@ Extrais et structure les données financières en JSON:
       "total_passif": <number>
     }
   },
-  "tresorerie": {
-    "flux_exploitation": <number>,
-    "flux_investissement": <number>,
-    "flux_financement": <number>,
-    "variation_tresorerie": <number>
+
+  "alertes": [
+    {"message": "<alerte>", "detail": "<explication>"}
+  ],
+
+  "croisements_bmc_fin": [
+    {"bloc_bmc": "<ex: Flux de revenus>", "titre": "<ex: Export B2B Europe>", "recommandation": "<détail>"}
+  ],
+
+  "indicateurs_cles": {
+    "marge_brute": "<xx%>",
+    "charges_fixes_ca": "<xx%>",
+    "masse_salariale_ca": "<xx%>"
   },
+
+  "verdict_indicateurs": "<verdict analyste sur indicateurs>",
+
+  "ratios_historiques": [
+    {"ratio": "<nom>", "n_moins_2": "<val>", "n_moins_1": "<val>", "n": "<val>", "benchmark": "<val>"}
+  ],
+
+  "tresorerie_bfr": {
+    "tresorerie_nette": <number>,
+    "cashflow_operationnel": <number>,
+    "caf": <number>,
+    "dscr": "<x.x>",
+    "composantes": [
+      {"indicateur": "<DSO|DPO|Stock jours|BFR/CA|Dette/EBITDA>", "valeur": "<val>", "benchmark": "<val>"}
+    ],
+    "verdict": "<verdict analyste trésorerie>"
+  },
+
+  "sante_financiere": {
+    "resume_chiffres": ["<CA: xxx FCFA>", "<Marge brute: xx%>"],
+    "forces": ["<force>"],
+    "faiblesses": ["<faiblesse>"]
+  },
+
+  "analyse_marge": {
+    "verdict": "<verdict sur la création de marge>",
+    "activites": [
+      {"nom": "<activité>", "ca": <number>, "marge_brute": <number>, "marge_pct": "<xx%>", "classification": "RENFORCER|ARBITRER|RESTRUCTURER"}
+    ],
+    "message_cle": "<message clé>"
+  },
+
+  "projection_5ans": {
+    "verdict": "<verdict analyste projections>",
+    "lignes": [
+      {"poste": "<CA Total|Marge Brute|EBITDA|Résultat Net|Cash-Flow Net|Trésorerie Cumulée>", "an1": <number>, "an2": <number>, "an3": <number>, "an4": <number>, "an5": <number>, "cagr": "<xx%>"}
+    ],
+    "marges": [
+      {"poste": "<Marge Brute %|Marge EBITDA %>", "an1": "<xx%>", "an2": "<xx%>", "an3": "<xx%>", "an4": "<xx%>", "an5": "<xx%>"}
+    ]
+  },
+
+  "seuil_rentabilite": {
+    "ca_point_mort": <number>,
+    "atteint_en": "<x.x mois>",
+    "verdict": "<verdict>"
+  },
+
+  "scenarios": {
+    "verdict": "<verdict comparatif scénarios>",
+    "tableau": [
+      {"indicateur": "<nom>", "prudent": "<val>", "central": "<val>", "ambitieux": "<val>"}
+    ],
+    "sensibilite": ["<CA +10%: EBITDA +xxx>"],
+    "recommandation_scenario": "<scénario recommandé et pourquoi>"
+  },
+
+  "plan_action": [
+    {"horizon": "COURT|MOYEN|LONG", "action": "<action détaillée>", "cout": "<montant>", "impact": "<impact attendu>"}
+  ],
+
+  "impact_attendu": {
+    "ca_an5": "<montant>",
+    "ebitda_an5": "<montant>",
+    "marge_ebitda_an5": "<xx%>"
+  },
+
+  "besoins_financiers": {
+    "capex_total": "<montant>",
+    "timing": "<timing>"
+  },
+
+  "synthese_expert": "<paragraphe synthèse expert complet>",
+
+  "analyse_scenarios_ia": "<commentaire IA sur scénarios>",
+
+  "risques_cles": [
+    {"risque": "<description>", "severite": "HAUTE|MOYENNE|FAIBLE"}
+  ],
+
+  "bailleurs_potentiels": [
+    {"nom": "<nom bailleur>", "raison": "<pourquoi ce bailleur est adapté>"}
+  ],
+
+  "croisement_bmc_financiers": {
+    "synthese": "<synthèse du croisement>",
+    "incoherences": [
+      {"severite": "CRITIQUE|HAUTE|MOYENNE", "description": "<description incohérence>"}
+    ]
+  },
+
+  "donnees_manquantes": ["<donnée manquante>"],
+
+  "hypotheses": ["<hypothèse utilisée>"],
+
   "effectifs": {
     "total": <number>,
     "cadres": <number>,
     "employes": <number>
-  },
-  "hypotheses": ["<hypothèse utilisée pour estimer les données>"],
-  "fiabilite": "<Élevée|Moyenne|Faible - basée sur les données disponibles>"
+  }
 }`;
 
 serve(async (req) => {
