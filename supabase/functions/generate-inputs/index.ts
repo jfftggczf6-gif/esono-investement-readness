@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable } from "../_shared/helpers.ts";
+import { normalizeInputs } from "../_shared/normalizers.ts";
 
 const SYSTEM_PROMPT = `Tu es un expert-comptable spécialisé dans les PME africaines (zone UEMOA/CEMAC). Tu extrais et structures les données financières à partir de documents.
 IMPORTANT: Réponds UNIQUEMENT en JSON valide. Tous les montants en FCFA.`;
