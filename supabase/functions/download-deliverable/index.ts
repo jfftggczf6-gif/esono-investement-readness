@@ -83,6 +83,23 @@ function fmt(n: any): string {
   return new Intl.NumberFormat('fr-FR').format(Number(n));
 }
 
+// Safely extract an array of strings from any shape (array, object with items/postes, string, etc.)
+function toArr(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map((v: any) => typeof v === 'string' ? v : v?.item || v?.libelle || v?.description || v?.nom || v?.name || v?.enonce || JSON.stringify(v));
+  if (typeof val === 'object') {
+    // Handle normalized shapes: { items: [...] }, { postes: [...] }, { enonce: "..." }, { principal: "..." }
+    if (val.items) return toArr(val.items);
+    if (val.postes) return toArr(val.postes);
+    if (val.enonce) return [val.enonce, ...(val.avantages || [])];
+    if (val.principal) return [val.principal];
+    if (val.produit_principal) return [val.produit_principal];
+    return [];
+  }
+  if (typeof val === 'string') return [val];
+  return [];
+}
+
 // ===== BMC HTML =====
 function bmcHTML(data: any, ent: string): string {
   const c = data.canvas || {};
@@ -90,30 +107,31 @@ function bmcHTML(data: any, ent: string): string {
 <table><tr>
 <th>Partenaires clés</th><th>Activités clés</th><th>Proposition de valeur</th><th>Relation client</th><th>Segments clients</th>
 </tr><tr>
-<td>${(c.partenaires_cles||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
-<td>${(c.activites_cles||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
-<td>${(c.proposition_valeur||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
-<td>${(c.relation_client||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
-<td>${(c.segments_clients||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td>${toArr(c.partenaires_cles).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td>${toArr(c.activites_cles).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td>${toArr(c.proposition_valeur).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td>${toArr(c.relation_client || c.relations_clients).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td>${toArr(c.segments_clients).map((s:string)=>`• ${s}`).join('<br>')}</td>
 </tr><tr>
 <th colspan="2">Structure de coûts</th><th>Ressources clés</th><th colspan="2">Flux de revenus</th>
 </tr><tr>
-<td colspan="2">${(c.structure_couts||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
-<td>${(c.ressources_cles||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
-<td colspan="2">${(c.flux_revenus||[]).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td colspan="2">${toArr(c.structure_couts).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td>${toArr(c.ressources_cles).map((s:string)=>`• ${s}`).join('<br>')}</td>
+<td colspan="2">${toArr(c.flux_revenus).map((s:string)=>`• ${s}`).join('<br>')}</td>
 </tr></table></div>`;
 
   let swotHtml = '';
   if (data.swot) {
     swotHtml = `<div class="card"><h2>🧭 Analyse SWOT</h2><div class="swot-grid">
-<div class="swot-box swot-s"><h4>✅ Forces</h4><ul>${(data.swot.forces||[]).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
-<div class="swot-box swot-w"><h4>⚠️ Faiblesses</h4><ul>${(data.swot.faiblesses||[]).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
-<div class="swot-box swot-o"><h4>🚀 Opportunités</h4><ul>${(data.swot.opportunites||[]).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
-<div class="swot-box swot-t"><h4>🔴 Menaces</h4><ul>${(data.swot.menaces||[]).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
+<div class="swot-box swot-s"><h4>✅ Forces</h4><ul>${toArr(data.swot.forces).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
+<div class="swot-box swot-w"><h4>⚠️ Faiblesses</h4><ul>${toArr(data.swot.faiblesses).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
+<div class="swot-box swot-o"><h4>🚀 Opportunités</h4><ul>${toArr(data.swot.opportunites).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
+<div class="swot-box swot-t"><h4>🔴 Menaces</h4><ul>${toArr(data.swot.menaces).map((s:string)=>`<li>${s}</li>`).join('')}</ul></div>
 </div></div>`;
   }
 
-  const recs = (data.recommandations||[]).length > 0 ? `<div class="card"><h2>🎯 Recommandations</h2><ul>${data.recommandations.map((r:string)=>`<li>${r}</li>`).join('')}</ul></div>` : '';
+  const recsArr = toArr(data.recommandations);
+  const recs = recsArr.length > 0 ? `<div class="card"><h2>🎯 Recommandations</h2><ul>${recsArr.map((r:string)=>`<li>${r}</li>`).join('')}</ul></div>` : '';
 
   return htmlShell('Business Model Canvas', data.score, canvasGrid + swotHtml + recs, ent);
 }
