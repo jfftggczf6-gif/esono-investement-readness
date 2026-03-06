@@ -2,47 +2,165 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable } from "../_shared/helpers.ts";
 import { normalizeSic } from "../_shared/normalizers.ts";
 
-const SYSTEM_PROMPT = `Tu es un expert en impact social et ODD (Objectifs de Développement Durable) pour les PME africaines. Tu produis des analyses SIC (Social Impact Canvas) professionnelles.
-IMPORTANT: Réponds UNIQUEMENT en JSON valide.`;
+const SYSTEM_PROMPT = `Tu es un expert en Impact Investing et évaluation ESG (Environnement, Social, Gouvernance) spécialisé dans les PME en Afrique de l'Ouest (UEMOA / Côte d'Ivoire).
+
+MISSION : Analyser le Social Impact Canvas de cet entrepreneur et produire un JSON d'analyse scoré.
+
+══════════════════════════════════════
+SCORING — 5 DIMENSIONS
+══════════════════════════════════════
+
+Évalue chaque dimension de 0 à 100. Le score global = moyenne pondérée.
+
+DIMENSION 1 — PROBLÈME & VISION (poids : 25%)
+  Agrège : Problème sociétal + Outcomes
+  Tu évalues :
+    - Le problème est-il clairement défini ? (1 seul, pas 3)
+    - Est-il documenté avec des données ? (chiffres, sources)
+    - Est-il ancré localement ? (zones géographiques précises)
+    - Les outcomes sont-ils progressifs et crédibles ? (court/moyen/long terme)
+    - La phrase de transformation est-elle percutante ?
+  Barème :
+    80-100 = Problème clair, documenté, outcomes crédibles
+    50-79  = Problème identifié mais données imprécises ou outcomes vagues
+    30-49  = Problème vague, pas de données, outcomes non définis
+    0-29   = Pas de problème social identifiable
+
+DIMENSION 2 — BÉNÉFICIAIRES (poids : 20%)
+  Agrège : Bénéficiaires + Solution
+  Tu évalues :
+    - Les bénéficiaires directs sont-ils QUANTIFIÉS ?
+    - Les bénéficiaires indirects sont-ils identifiés ?
+    - Les vulnérabilités sont-elles décrites concrètement ?
+    - La solution atteint-elle bien les bénéficiaires visés ?
+    - Le nombre est-il RÉALISTE ?
+  Barème :
+    80-100 = Quantifiés + vulnérables + atteignables
+    50-79  = Identifiés mais pas tous quantifiés
+    30-49  = Vagues
+    0-29   = Non identifiés
+
+DIMENSION 3 — MESURE D'IMPACT (poids : 20%)
+  ATTENTION CRITIQUE — distingue :
+    OUTPUT = résultat direct (ex: "500 personnes formées")
+    OUTCOME = changement pour bénéficiaires (ex: "70% ont un emploi")
+    IMPACT = effet sociétal long terme (ex: "recul du chômage")
+  Pour CHAQUE indicateur, indique si c'est un output, outcome ou impact.
+  Barème :
+    80-100 = ≥3 KPIs SMART d'impact/outcome + méthode documentée
+    50-79  = KPIs présents mais confusion output/outcome
+    30-49  = 1-2 indicateurs vagues
+    0-29   = Aucun indicateur mesurable
+
+DIMENSION 4 — ALIGNEMENT ODD (poids : 20%)
+  IDENTIFIE les ODD même si l'entrepreneur ne les mentionne PAS.
+  Table de déduction par secteur :
+    Agriculture → ODD 1, 2, 8, 12, 15 | Énergie → ODD 7, 13 | Éducation → ODD 4, 8, 10
+    Santé → ODD 3, 6 | Tech → ODD 4, 9, 10 | BTP → ODD 9, 11 | Recyclage → ODD 12, 13, 15
+    Emploi femmes → ODD 5, 8, 10 | Eau → ODD 6, 14
+  Pour chaque ODD : numéro, nom officiel, alignement (fort/moyen/faible), justification.
+  Barème :
+    80-100 = 3-5 ODD justifiés + impact = cœur du modèle
+    50-79  = ODD listés + impact croissant
+    30-49  = ODD vaguement mentionnés
+    0-29   = Aucun alignement ODD
+
+DIMENSION 5 — GESTION DES RISQUES (poids : 15%)
+  Barème :
+    80-100 = Risques identifiés + mitigation crédible + ressources dédiées
+    50-79  = Risques listés mais mitigation incomplète
+    30-49  = Risques partiellement identifiés
+    0-29   = Aucune gestion des risques
+
+══════════════════════════════════════
+SCORE GLOBAL
+══════════════════════════════════════
+score_global = (probleme_vision × 0.25) + (beneficiaires × 0.20) + (mesure_impact × 0.20) + (alignement_odd × 0.20) + (gestion_risques × 0.15)
+
+Paliers :
+  0-30   → palier: "non_demontre",  label: "Impact Non Démontré"
+  31-50  → palier: "a_structurer",  label: "Impact à Structurer"
+  51-70  → palier: "en_construction", label: "Impact Social : En Construction"
+  71-85  → palier: "solide",        label: "Impact Solide — Prêt pour Bailleurs"
+  86-100 → palier: "exemplaire",    label: "Impact Exemplaire"
+
+══════════════════════════════════════
+THÉORIE DU CHANGEMENT
+══════════════════════════════════════
+Construis : PROBLÈME → ACTIVITÉS → OUTPUTS → OUTCOMES → IMPACT (1 phrase chacune).
+
+══════════════════════════════════════
+CROISEMENT BMC ↔ SIC (si BMC disponible)
+══════════════════════════════════════
+Vérifie cohérence : Segments/Bénéficiaires, Proposition de Valeur/Solution, Revenus/Impact, Partenaires/Parties Prenantes.
+
+══════════════════════════════════════
+RECOMMANDATIONS : TOP 3 avec titre, détail, impact estimé sur le score.
+══════════════════════════════════════
+
+COULEURS ODD :
+ODD 1:#E5243B ODD 2:#DDA63A ODD 3:#4C9F38 ODD 4:#C5192D ODD 5:#FF3A21 ODD 6:#26BDE2 ODD 7:#FCC30B ODD 8:#A21942 ODD 9:#FD6925 ODD 10:#DD1367 ODD 11:#FD9D24 ODD 12:#BF8B2E ODD 13:#3F7E44 ODD 14:#0A97D9 ODD 15:#56C02B ODD 16:#00689D ODD 17:#19486A
+
+RÉPONDS UNIQUEMENT EN JSON VALIDE avec cette structure EXACTE.`;
 
 const userPrompt = (name: string, sector: string, country: string, docs: string, bmcData: any) => `
 Analyse l'entreprise "${name}" (Secteur: ${sector}, Pays: ${country}).
 
 ${bmcData?.canvas ? `DONNÉES BMC EXISTANTES:\n${JSON.stringify(bmcData, null, 2)}` : ""}
-${docs ? `DOCUMENTS:\n${docs}` : ""}
+${docs ? `DOCUMENTS UPLOADÉS:\n${docs}` : ""}
 
-Génère un Social Impact Canvas complet en JSON:
+Génère un Social Impact Canvas COMPLET en JSON avec EXACTEMENT cette structure :
 {
-  "score": <0-100>,
-  "mission_sociale": "<mission sociale de l'entreprise>",
-  "probleme_social": "<problème social adressé>",
-  "beneficiaires": {
-    "directs": ["<bénéficiaire 1>"],
-    "indirects": ["<bénéficiaire 1>"]
+  "score_global": <0-100>,
+  "palier": "en_construction",
+  "label": "Impact Social : En Construction",
+  "dimensions": {
+    "probleme_vision": { "score": 0, "label": "Problème & Vision", "commentaire": "..." },
+    "beneficiaires": { "score": 0, "label": "Bénéficiaires", "commentaire": "..." },
+    "mesure_impact": { "score": 0, "label": "Mesure d'Impact", "commentaire": "..." },
+    "alignement_odd": { "score": 0, "label": "Alignement ODD", "commentaire": "..." },
+    "gestion_risques": { "score": 0, "label": "Gestion des Risques", "commentaire": "..." }
   },
-  "theorie_changement": {
-    "inputs": ["<ressource mobilisée>"],
-    "activites": ["<activité clé>"],
-    "outputs": ["<produit/service>"],
-    "outcomes": ["<changement à court terme>"],
-    "impact": ["<impact à long terme>"]
+  "synthese_impact": "paragraphe de synthèse...",
+  "chiffres_cles": {
+    "beneficiaires_directs": { "nombre": 0, "horizon": "3 ans" },
+    "beneficiaires_indirects": { "nombre": 0 },
+    "impact_total_projete": { "nombre": 0 },
+    "odd_adresses": { "nombre": 0 }
   },
-  "odd_alignment": [
-    {"odd_number": <1-17>, "odd_name": "<nom>", "contribution": "<comment l'entreprise contribue>", "level": "Fort|Moyen|Faible"}
+  "canvas_blocs": {
+    "probleme_social": { "titre": "PROBLÈME SOCIAL", "points": ["..."] },
+    "transformation_visee": { "titre": "TRANSFORMATION VISÉE", "points": ["..."] },
+    "beneficiaires": { "titre": "BÉNÉFICIAIRES", "points": ["..."] },
+    "solution_activites": { "titre": "SOLUTION & ACTIVITÉS À IMPACT", "points": ["..."] },
+    "indicateurs_mesure": {
+      "titre": "INDICATEURS & MESURE",
+      "indicateurs": [{ "nom": "...", "type": "output|outcome|impact" }],
+      "cible_1_an": "...", "methode": "...", "frequence": "..."
+    },
+    "odd_cibles": {
+      "titre": "ODD CIBLÉS",
+      "odds": [{ "numero": 2, "nom": "Faim zéro", "couleur": "#DDA63A", "alignement": "fort", "justification": "..." }]
+    }
+  },
+  "risques_attenuation": {
+    "risques": [{ "risque": "...", "mitigation": "..." }]
+  },
+  "theorie_du_changement": {
+    "probleme": "...", "activites": "...", "outputs": "...", "outcomes": "...", "impact": "..."
+  },
+  "changements": { "court_terme": "...", "moyen_terme": "...", "long_terme": "..." },
+  "croisement_bmc": { "disponible": ${bmcData?.canvas ? 'true' : 'false'}, "coherences": [], "incoherences": [] },
+  "recommandations": [
+    { "priorite": 1, "titre": "...", "detail": "...", "impact_score": "+X points sur ..." }
   ],
-  "indicateurs_impact": [
-    {"indicateur": "<nom>", "valeur_actuelle": "<valeur>", "cible": "<objectif>", "unite": "<unité>"}
-  ],
-  "canvas": {
-    "valeur_sociale": "<proposition de valeur sociale>",
-    "parties_prenantes": ["<partie prenante>"],
-    "ressources_impact": ["<ressource>"],
-    "activites_impact": ["<activité>"],
-    "resultats_attendus": ["<résultat>"],
-    "mesure_impact": "<comment mesurer>"
+  "alignement_modele": {
+    "impact_position": "coeur_du_modele|effet_secondaire|activite_annexe",
+    "correlation_croissance": "augmente|stagne|diminue",
+    "conflit_rentabilite": "faible|moyen|fort",
+    "commentaire": "..."
   },
-  "risques_sociaux": ["<risque>"],
-  "recommandations": ["<recommandation>"]
+  "niveau_maturite": "idee|test_pilote|deploye|mesure|scale"
 }`;
 
 serve(async (req) => {
@@ -55,11 +173,13 @@ serve(async (req) => {
     const rawData = await callAI(SYSTEM_PROMPT, userPrompt(
       ent.name, ent.sector || "", ent.country || "", ctx.documentContent, bmcData
     ));
-    const data = normalizeSic(rawData);
 
-    await saveDeliverable(ctx.supabase, ctx.enterprise_id, "sic_analysis", data, "sic");
+    // Ensure score field is set for saveDeliverable
+    rawData.score = rawData.score_global || rawData.score || 0;
 
-    return jsonResponse({ success: true, data, score: data.score });
+    await saveDeliverable(ctx.supabase, ctx.enterprise_id, "sic_analysis", rawData, "sic");
+
+    return jsonResponse({ success: true, data: rawData, score: rawData.score_global || rawData.score });
   } catch (e: any) {
     console.error("generate-sic error:", e);
     return errorResponse(e.message || "Erreur inconnue", e.status || 500);

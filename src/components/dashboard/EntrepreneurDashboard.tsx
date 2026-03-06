@@ -18,6 +18,7 @@ import {
   BookOpen, Lock, FolderPlus
 } from 'lucide-react';
 import BmcViewer from './BmcViewer';
+import SicViewer from './SicViewer';
 import DeliverableViewer from './DeliverableViewer';
 
 const MODULE_CONFIG = [
