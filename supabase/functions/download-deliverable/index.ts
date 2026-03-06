@@ -370,52 +370,7 @@ function generateCSV(data: any): string {
   return "Champ,Valeur\n" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
 }
 
-// ===== XLSX GENERATOR (Office Open XML) =====
-function generateXlsx(data: any, title: string): Uint8Array {
-  // We generate a minimal XLSX using raw XML + JSZip would be ideal,
-  // but since we don't have JSZip in this function, we'll create an XML spreadsheet (Excel-compatible)
-  // Actually, let's return an HTML table that Excel opens natively
-  const rows: [string, string][] = [];
-  const flatten = (obj: any, prefix = "") => {
-    if (!obj || typeof obj !== "object") return;
-    if (Array.isArray(obj)) {
-      obj.forEach((item, i) => {
-        if (typeof item === "object") flatten(item, `${prefix}[${i}]`);
-        else rows.push([`${prefix}[${i}]`, String(item)]);
-      });
-    } else {
-      Object.entries(obj).forEach(([key, val]) => {
-        const fullKey = prefix ? `${prefix}.${key}` : key;
-        if (typeof val === "object" && val !== null) flatten(val, fullKey);
-        else rows.push([fullKey, String(val)]);
-      });
-    }
-  };
-  flatten(data);
-
-  // Excel XML Spreadsheet format
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles>
-<Style ss:ID="Header"><Font ss:Bold="1" ss:Size="12"/><Interior ss:Color="#1a2744" ss:Pattern="Solid"/><Font ss:Color="#FFFFFF" ss:Bold="1"/></Style>
-<Style ss:ID="Amount"><NumberFormat ss:Format="#,##0"/><Alignment ss:Horizontal="Right"/></Style>
-</Styles>
-<Worksheet ss:Name="${title.substring(0, 31)}">
-<Table>
-<Column ss:Width="250"/><Column ss:Width="200"/>
-<Row ss:StyleID="Header"><Cell><Data ss:Type="String">Champ</Data></Cell><Cell><Data ss:Type="String">Valeur</Data></Cell></Row>
-${rows.map(([k, v]) => {
-  const isNum = !isNaN(Number(v)) && v.trim() !== '';
-  return `<Row><Cell><Data ss:Type="String">${k.replace(/_/g, ' ')}</Data></Cell><Cell${isNum ? ' ss:StyleID="Amount"' : ''}><Data ss:Type="${isNum ? 'Number' : 'String'}">${v.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</Data></Cell></Row>`;
-}).join('\n')}
-</Table>
-</Worksheet>
-</Workbook>`;
-
-  return new TextEncoder().encode(xml);
-}
+// (XLSX generation moved to _shared/xlsx-generator.ts)
 
 // ===== MAIN HANDLER =====
 serve(async (req) => {
