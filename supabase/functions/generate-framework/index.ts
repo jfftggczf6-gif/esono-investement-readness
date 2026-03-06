@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable } from "../_shared/helpers.ts";
 import { normalizeFramework } from "../_shared/normalizers.ts";
+import { fillFrameworkExcelTemplate } from "../_shared/framework-excel-template.ts";
 
 const SYSTEM_PROMPT = `Tu es un analyste financier expert spécialisé dans les PME africaines (zone UEMOA/CEMAC). Tu produis des analyses financières complètes de type "Framework d'Analyse Financière PME" avec ratios, projections 5 ans, scénarios, et plan d'action.
 IMPORTANT: Réponds UNIQUEMENT en JSON valide. Tous les montants en FCFA.`;
