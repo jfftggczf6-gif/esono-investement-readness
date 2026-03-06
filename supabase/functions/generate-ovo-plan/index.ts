@@ -163,7 +163,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: urlData } = await supabase.storage
       .from(OUTPUT_BUCKET)
-      .createSignedUrl(outputFileName, 3600); // 1 heure
+      .createSignedUrl(outputFileName, 86400); // 24 heures
 
     console.log("[generate-ovo-plan] SUCCESS");
 
