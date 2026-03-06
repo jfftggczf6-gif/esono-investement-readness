@@ -74,37 +74,77 @@ export default function CoachDashboard() {
   const completedModules = Object.values(modulesMap).flat().filter(m => m.status === 'completed').length;
   const totalModules = Object.values(modulesMap).flat().length;
 
+  const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; name: string } | null>(null);
+
+  const PIPELINE = [
+    { name: "BMC", fn: "generate-bmc", type: "bmc_analysis" },
+    { name: "SIC", fn: "generate-sic", type: "sic_analysis" },
+    { name: "Inputs", fn: "generate-inputs", type: "inputs_data" },
+    { name: "Framework", fn: "generate-framework", type: "framework_data" },
+    { name: "Diagnostic", fn: "generate-diagnostic", type: "diagnostic_data" },
+    { name: "Plan OVO", fn: "generate-plan-ovo", type: "plan_ovo" },
+    { name: "Business Plan", fn: "generate-business-plan", type: "business_plan" },
+    { name: "ODD", fn: "generate-odd", type: "odd_analysis" },
+  ];
+
   const handleGenerateAll = async (enterpriseId: string) => {
     setGenerating(true);
+    let completed = 0;
+    const scores: number[] = [];
+    const errors: string[] = [];
+    const delivs = deliverablesMap[enterpriseId] || [];
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Non authentifié");
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-deliverables`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ enterprise_id: enterpriseId, force: true }),
+      for (let i = 0; i < PIPELINE.length; i++) {
+        const step = PIPELINE[i];
+        setGenerationProgress({ current: i + 1, total: PIPELINE.length, name: step.name });
+
+        const existing = delivs.find((d: any) => d.type === step.type);
+        if (existing?.data && typeof existing.data === 'object' && Object.keys(existing.data as object).length > 0) {
+          completed++;
+          if (existing.score) scores.push(existing.score);
+          continue;
         }
-      );
-      if (!response.ok) {
-        const err = await response.json();
-        if (response.status === 402) {
-          throw new Error("Crédits IA insuffisants. Rechargez vos crédits dans Settings → Workspace → Usage.");
+
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${step.fn}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+              body: JSON.stringify({ enterprise_id: enterpriseId }),
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            completed++;
+            if (result.score) scores.push(result.score);
+          } else {
+            const err = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+            if (response.status === 402) {
+              toast.error("Crédits IA insuffisants.");
+              break;
+            }
+            errors.push(`${step.name}: ${err.error || 'Erreur'}`);
+          }
+        } catch (e: any) {
+          errors.push(`${step.name}: ${e.message || 'Erreur réseau'}`);
         }
-        throw new Error(err.error || 'Erreur de génération');
       }
-      const result = await response.json();
-      if (result.warning) {
-        toast.warning(result.warning);
-      }
-      toast.success(`${result.deliverables_count} livrables générés ! Score: ${result.global_score}/100`);
+
+      const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      toast.success(`${completed} livrables générés ! Score: ${avgScore}/100`);
+      if (errors.length > 0) toast.warning(`${errors.length} module(s) en erreur`);
       await fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Erreur');
     } finally {
       setGenerating(false);
+      setGenerationProgress(null);
     }
   };
 
@@ -185,8 +225,11 @@ export default function CoachDashboard() {
               <Card className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-muted-foreground mb-4">Aucune donnée générée pour ce module.</p>
                 <Button onClick={() => handleGenerateAll(ent.id)} disabled={generating} className="gap-2">
-                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  Générer tous les livrables
+                  {generating && generationProgress ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> {generationProgress.name} ({generationProgress.current}/{generationProgress.total})...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4" /> Générer tous les livrables</>
+                  )}
                 </Button>
               </Card>
             )}
