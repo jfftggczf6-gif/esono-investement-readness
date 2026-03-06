@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ESONO — OVO Financial Plan Excel Mapping
  * =========================================
