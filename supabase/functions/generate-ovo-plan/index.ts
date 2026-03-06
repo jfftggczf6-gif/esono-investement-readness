@@ -365,91 +365,201 @@ function buildUserPrompt(data: EntrepreneurData): string {
   const deducedProducts = (data.products || []).filter(p => p.deduit_du_bmc);
   const deducedServices = (data.services || []).filter(s => s.deduit_du_bmc);
 
-  // Format products/services lists
-  const productsList = hasProducts
-    ? (data.products || []).map((p, i) => `  ${i+1}. ${p.name} — ${p.description}${p.price ? ` — Prix indicatif: ${p.price} FCFA` : ""}${p.deduit_du_bmc ? " [DÉDUIT DU BMC - à enrichir]" : ""}`).join("\n")
-    : "  Aucun produit fourni explicitement.";
+  // ── Extract structured revenue data from framework/plan_ovo ──
+  const fw = (data.framework_data || {}) as Record<string, any>;
+  const prevPlan = (data.plan_ovo_data || {}) as Record<string, any>;
+  const inp = (data.inputs_data || {}) as Record<string, any>;
+  const cr = inp.compte_resultat || {};
+  const bmc = (data.bmc_data || {}) as Record<string, any>;
+  const sic = (data.sic_data || {}) as Record<string, any>;
+  const diag = (data.diagnostic_data || {}) as Record<string, any>;
 
-  const servicesList = hasServices
-    ? (data.services || []).map((s, i) => `  ${i+1}. ${s.name} — ${s.description}${s.price ? ` — Prix indicatif: ${s.price} FCFA` : ""}${s.deduit_du_bmc ? " [DÉDUIT DU BMC - à enrichir]" : ""}`).join("\n")
-    : "  Aucun service fourni explicitement.";
+  // ── REVENUS PAR PRODUIT (structured from analyse_marge) ──
+  const margeActivites = fw.analyse_marge?.activites || [];
+  const totalCA = cr.chiffre_affaires || cr.ca || inp.revenue || data.existing_revenue || 0;
+  const bmcFlux = bmc.canvas?.flux_revenus || {};
+  const prixMoyen = bmcFlux.prix_moyen || bmcFlux.prix_unitaire || 0;
+  const volumeAnnuel = bmcFlux.volume_annuel || bmcFlux.volume_estime || 0;
 
-  // ── Inputs financiers block ──
-  let inputsBlock = "";
-  if (data.inputs_data && Object.keys(data.inputs_data).length > 0) {
-    const inp = data.inputs_data as Record<string, any>;
-    const cr = inp.compte_resultat || {};
-    const bilan = inp.bilan || {};
-    inputsBlock = `
-DONNÉES FINANCIÈRES INPUTS :
-- CA : ${cr.chiffre_affaires || cr.ca || inp.revenue || 'N/A'} FCFA
-- Achats matières : ${cr.achats_matieres || cr.achats || 'N/A'} FCFA
-- Charges personnel : ${cr.charges_personnel || cr.salaires || 'N/A'} FCFA
-- Charges externes : ${cr.charges_externes || 'N/A'} FCFA
-- Résultat exploitation : ${cr.resultat_exploitation || cr.ebit || 'N/A'} FCFA
-- Résultat net : ${cr.resultat_net || 'N/A'} FCFA
-- Bilan total actif : ${bilan.total_actif || 'N/A'} FCFA
-- Capitaux propres : ${bilan.capitaux_propres || 'N/A'} FCFA
-- Dettes totales : ${bilan.dettes_totales || bilan.total_dettes || 'N/A'} FCFA
-${inp.produits ? `- Produits déclarés inputs : ${JSON.stringify(inp.produits)}` : ""}
-${inp.activites ? `- Activités déclarées inputs : ${JSON.stringify(inp.activites)}` : ""}
-DONNÉES INPUTS COMPLÈTES : ${JSON.stringify(data.inputs_data, null, 2)}`;
+  let revenueByProductBlock = "";
+  if (margeActivites.length > 0) {
+    revenueByProductBlock = `
+REVENUS PAR PRODUIT (DONNÉES RÉELLES — À RESPECTER IMPÉRATIVEMENT) :
+${margeActivites.map((a: any, i: number) => {
+  const ca = a.ca || 0;
+  const pct = totalCA > 0 ? Math.round((ca / totalCA) * 100) : 0;
+  const marge = a.marge_brute || a.marge || 0;
+  const margePct = ca > 0 ? Math.round((marge / ca) * 100) : (a.marge_pct || 60);
+  const estimatedPrice = prixMoyen || (ca > 0 && volumeAnnuel > 0 ? Math.round(ca / volumeAnnuel) : 0);
+  const estimatedVolume = estimatedPrice > 0 ? Math.round(ca / estimatedPrice) : 0;
+  return `  Produit ${i+1}: ${a.nom || a.name || a.label || `Activité ${i+1}`}
+    → CA = ${ca.toLocaleString('fr-FR')} FCFA (${pct}% du CA total)
+    → Marge brute = ${marge.toLocaleString('fr-FR')} FCFA (${margePct}%)
+    → Prix unitaire estimé = ${estimatedPrice.toLocaleString('fr-FR')} FCFA
+    → Volume annuel estimé = ${estimatedVolume.toLocaleString('fr-FR')} unités
+    → CALCUL: volume = CA / prix_unitaire, volume_h1 = volume × 0.45, volume_h2 = volume × 0.55`;
+}).join("\n")}
+  TOTAL CA = ${totalCA.toLocaleString('fr-FR')} FCFA
+  ⚠️ La SOMME des CA par produit DOIT correspondre au revenue total par année.`;
   }
 
-  // ── Framework block ──
-  let frameworkBlock = "";
-  if (data.framework_data && Object.keys(data.framework_data).length > 0) {
-    const fw = data.framework_data as Record<string, any>;
-    frameworkBlock = `
-PROJECTIONS FRAMEWORK (Plan Financier Intermédiaire) :
-${fw.kpis ? `- KPIs : CA=${fw.kpis.ca_annee_n || 'N/A'}, EBITDA=${fw.kpis.ebitda || 'N/A'}, Marge brute=${fw.kpis.marge_brute || 'N/A'}%` : ""}
-${fw.ratios_historiques ? `- Ratios historiques : ${JSON.stringify(fw.ratios_historiques)}` : ""}
-${fw.projection_5ans?.lignes ? `- Projection 5 ans : ${JSON.stringify(fw.projection_5ans.lignes)}` : ""}
-${fw.tresorerie_bfr ? `- Trésorerie/BFR : trésorerie=${fw.tresorerie_bfr.tresorerie_nette || 'N/A'}, cashflow=${fw.tresorerie_bfr.cashflow_operationnel || 'N/A'}, CAF=${fw.tresorerie_bfr.caf || 'N/A'}` : ""}
-${fw.analyse_marge?.activites ? `- Analyse marge par activité : ${JSON.stringify(fw.analyse_marge.activites)}` : ""}
-${fw.scenarios?.tableau ? `- Scénarios : ${JSON.stringify(fw.scenarios.tableau)}` : ""}
-DONNÉES FRAMEWORK COMPLÈTES : ${JSON.stringify(data.framework_data, null, 2)}`;
+  // ── REVENUS HISTORIQUES (from previous plan_ovo) ──
+  let historicalRevenueBlock = "";
+  if (prevPlan.revenue && typeof prevPlan.revenue === 'object') {
+    const rev = prevPlan.revenue;
+    historicalRevenueBlock = `
+REVENUS HISTORIQUES ET PROJETÉS (NE PAS MODIFIER — données du plan financier intermédiaire) :
+  YEAR-2 (${cy-2}): ${(rev.year_minus_2 || 0).toLocaleString('fr-FR')} FCFA
+  YEAR-1 (${cy-1}): ${(rev.year_minus_1 || 0).toLocaleString('fr-FR')} FCFA
+  CURRENT YEAR (${cy}): ${(rev.current_year || 0).toLocaleString('fr-FR')} FCFA
+  YEAR2 (${cy+1}): ${(rev.year2 || 0).toLocaleString('fr-FR')} FCFA
+  YEAR3 (${cy+2}): ${(rev.year3 || 0).toLocaleString('fr-FR')} FCFA
+  YEAR4 (${cy+3}): ${(rev.year4 || 0).toLocaleString('fr-FR')} FCFA
+  YEAR5 (${cy+4}): ${(rev.year5 || 0).toLocaleString('fr-FR')} FCFA
+  YEAR6 (${cy+5}): ${(rev.year6 || 0).toLocaleString('fr-FR')} FCFA
+  ⚠️ Ces revenus sont des CONTRAINTES ABSOLUES. Le total revenue par année dans ton JSON DOIT correspondre.`;
+  }
+
+  // ── OPEX HISTORIQUES (from previous plan_ovo) ──
+  let opexBlock = "";
+  if (prevPlan.opex && typeof prevPlan.opex === 'object') {
+    const opex = prevPlan.opex;
+    const fmtLine = (label: string, obj: any) => {
+      if (!obj || typeof obj !== 'object') return "";
+      const vals = [obj.year_minus_2, obj.year_minus_1, obj.current_year, obj.year2, obj.year3, obj.year4, obj.year5, obj.year6]
+        .map((v: any) => v != null ? Number(v).toLocaleString('fr-FR') : '0');
+      return `  ${label}: ${vals.join(' → ')} FCFA`;
+    };
+    const lines = [
+      fmtLine("Staff salaires", opex.staff_salaries),
+      fmtLine("Marketing", opex.marketing),
+      fmtLine("Bureaux", opex.office_costs),
+      fmtLine("Déplacements", opex.travel),
+      fmtLine("Assurances", opex.insurance),
+      fmtLine("Maintenance", opex.maintenance),
+      fmtLine("Tiers", opex.third_parties),
+      fmtLine("Autres", opex.other),
+    ].filter(Boolean);
+    if (lines.length > 0) {
+      opexBlock = `
+OPEX HISTORIQUES ET PROJETÉS (NE PAS MODIFIER) :
+  (Format: YEAR-2 → YEAR-1 → CY → Y2 → Y3 → Y4 → Y5 → Y6)
+${lines.join("\n")}`;
+    }
+  }
+
+  // ── CAPEX from previous plan ──
+  let capexBlock = "";
+  if (Array.isArray(prevPlan.capex) && prevPlan.capex.length > 0) {
+    capexBlock = `
+CAPEX (du plan financier intermédiaire — à reprendre) :
+${prevPlan.capex.map((c: any) => `  - ${c.label || c.type}: ${(c.acquisition_value || 0).toLocaleString('fr-FR')} FCFA, acquis en ${c.acquisition_year}, amort. ${((c.amortisation_rate_pct || c.amortisation_rate || 0.2) * 100).toFixed(0)}%/an`).join("\n")}`;
+  }
+
+  // ── STAFF from previous plan ──
+  let staffBlock = "";
+  if (Array.isArray(prevPlan.staff) && prevPlan.staff.length > 0) {
+    staffBlock = `
+EFFECTIFS (du plan financier intermédiaire — à reprendre) :
+${prevPlan.staff.map((s: any) => `  - ${s.label || s.category}: département ${s.department || 'N/A'}, cotisations ${((s.social_security_rate || 0.1645) * 100).toFixed(1)}%`).join("\n")}`;
+  }
+
+  // ── LOANS from previous plan ──
+  let loansBlock = "";
+  if (prevPlan.loans && typeof prevPlan.loans === 'object') {
+    const l = prevPlan.loans;
+    loansBlock = `
+PRÊTS (du plan financier intermédiaire) :
+  - OVO: ${(l.ovo?.amount || 0).toLocaleString('fr-FR')} FCFA à ${((l.ovo?.rate || 0.07) * 100)}% sur ${l.ovo?.term_years || 5} ans
+  - Famille: ${(l.family?.amount || 0).toLocaleString('fr-FR')} FCFA à ${((l.family?.rate || 0.10) * 100)}% sur ${l.family?.term_years || 3} ans
+  - Banque: ${(l.bank?.amount || 0).toLocaleString('fr-FR')} FCFA à ${((l.bank?.rate || 0.20) * 100)}% sur ${l.bank?.term_years || 2} ans`;
+  }
+
+  // ── COGS from previous plan ──
+  let cogsBlock = "";
+  if (prevPlan.cogs && typeof prevPlan.cogs === 'object') {
+    const cogs = prevPlan.cogs;
+    cogsBlock = `
+COGS / COÛT DES VENTES (NE PAS MODIFIER) :
+  YEAR-2: ${(cogs.year_minus_2 || 0).toLocaleString('fr-FR')} → YEAR-1: ${(cogs.year_minus_1 || 0).toLocaleString('fr-FR')} → CY: ${(cogs.current_year || 0).toLocaleString('fr-FR')} → Y2: ${(cogs.year2 || 0).toLocaleString('fr-FR')} → Y3: ${(cogs.year3 || 0).toLocaleString('fr-FR')} → Y4: ${(cogs.year4 || 0).toLocaleString('fr-FR')} → Y5: ${(cogs.year5 || 0).toLocaleString('fr-FR')} → Y6: ${(cogs.year6 || 0).toLocaleString('fr-FR')} FCFA`;
+  }
+
+  // ── Framework projections (structured) ──
+  let projectionBlock = "";
+  if (fw.projection_5ans?.lignes && Array.isArray(fw.projection_5ans.lignes)) {
+    projectionBlock = `
+PROJECTIONS 5 ANS (Framework — contraintes de cohérence) :
+${fw.projection_5ans.lignes.map((l: any) => `  ${l.libelle || l.label}: An1=${l.an1}, An2=${l.an2}, An3=${l.an3}, An4=${l.an4}, An5=${l.an5}`).join("\n")}`;
+  }
+
+  // ── Framework KPIs ──
+  let kpisBlock = "";
+  if (fw.kpis) {
+    kpisBlock = `
+KPIs FRAMEWORK :
+  - CA année N: ${fw.kpis.ca_annee_n || 'N/A'} FCFA
+  - EBITDA: ${fw.kpis.ebitda || 'N/A'} FCFA  
+  - Marge brute: ${fw.kpis.marge_brute || 'N/A'}%
+  - Trésorerie nette: ${fw.tresorerie_bfr?.tresorerie_nette || 'N/A'} FCFA
+  - CAF: ${fw.tresorerie_bfr?.caf || 'N/A'} FCFA
+  - DSCR: ${fw.tresorerie_bfr?.dscr || 'N/A'}`;
+  }
+
+  // ── Investment metrics from previous plan ──
+  let investmentBlock = "";
+  if (prevPlan.investment_metrics) {
+    const im = prevPlan.investment_metrics;
+    investmentBlock = `
+MÉTRIQUES D'INVESTISSEMENT (à recalculer de manière cohérente) :
+  - VAN précédente: ${(im.van || 0).toLocaleString('fr-FR')} FCFA (taux actualisation ${((im.discount_rate || 0.12) * 100)}%)
+  - TRI précédent: ${((im.tri || 0) * 100).toFixed(1)}%
+  - CAGR Revenue: ${((im.cagr_revenue || 0) * 100).toFixed(1)}%
+  - ROI: ${((im.roi || 0) * 100).toFixed(1)}%
+  - Payback: ${im.payback_years || 'N/A'} ans`;
   }
 
   // ── SIC block ──
   let sicBlock = "";
-  if (data.sic_data && Object.keys(data.sic_data).length > 0) {
-    const sic = data.sic_data as Record<string, any>;
+  if (sic && Object.keys(sic).length > 0) {
     sicBlock = `
 IMPACT SOCIAL (SIC) :
 ${sic.odd_alignment ? `- ODD alignés : ${JSON.stringify(sic.odd_alignment)}` : ""}
-${sic.parties_prenantes ? `- Parties prenantes : ${JSON.stringify(sic.parties_prenantes)}` : ""}
-${sic.theorie_changement ? `- Théorie du changement : ${JSON.stringify(sic.theorie_changement)}` : ""}
-${sic.indicateurs ? `- Indicateurs d'impact : ${JSON.stringify(sic.indicateurs)}` : ""}`;
-  }
-
-  // ── Previous plan block ──
-  let prevPlanBlock = "";
-  if (data.plan_ovo_data && Object.keys(data.plan_ovo_data).length > 0) {
-    prevPlanBlock = `
-PLAN FINANCIER PRÉCÉDENT (pour cohérence) :
-${JSON.stringify(data.plan_ovo_data, null, 2)}`;
+${sic.parties_prenantes ? `- Parties prenantes : ${JSON.stringify(sic.parties_prenantes)}` : ""}`;
   }
 
   // ── Diagnostic block ──
   let diagnosticBlock = "";
-  if (data.diagnostic_data && Object.keys(data.diagnostic_data).length > 0) {
-    const diag = data.diagnostic_data as Record<string, any>;
+  if (diag && Object.keys(diag).length > 0) {
     diagnosticBlock = `
 DIAGNOSTIC EXPERT :
 ${diag.synthese_executive ? `- Synthèse : ${diag.synthese_executive}` : ""}
-${diag.swot ? `- SWOT : ${JSON.stringify(diag.swot)}` : ""}
 ${diag.recommandations ? `- Recommandations : ${JSON.stringify(diag.recommandations)}` : ""}`;
   }
 
+  // Format products/services lists with financial data
+  const productsList = hasProducts
+    ? (data.products || []).map((p, i) => {
+        const margeMatch = margeActivites.find((a: any) => 
+          (a.nom || a.name || '').toLowerCase().includes((p.name || '').toLowerCase().substring(0, 8)) ||
+          (p.name || '').toLowerCase().includes((a.nom || a.name || '').toLowerCase().substring(0, 8))
+        );
+        const caInfo = margeMatch ? ` — CA réel: ${(margeMatch.ca || 0).toLocaleString('fr-FR')} FCFA, marge: ${(margeMatch.marge_brute || 0).toLocaleString('fr-FR')} FCFA` : "";
+        return `  ${i+1}. ${p.name} — ${p.description}${p.price ? ` — Prix: ${p.price} FCFA` : ""}${caInfo}${p.deduit_du_bmc ? " [DÉDUIT DU BMC]" : ""}`;
+      }).join("\n")
+    : "  Aucun produit fourni explicitement.";
+
+  const servicesList = hasServices
+    ? (data.services || []).map((s, i) => `  ${i+1}. ${s.name} — ${s.description}${s.price ? ` — Prix: ${s.price} FCFA` : ""}${s.deduit_du_bmc ? " [DÉDUIT DU BMC]" : ""}`).join("\n")
+    : "  Aucun service fourni explicitement.";
+
   // ── Smart product instructions ──
   const productInstructions = hasProducts
-    ? `1. Utilise les ${data.products.length} produits fournis${deducedProducts.length > 0 ? ` (dont ${deducedProducts.length} déduits du BMC — enrichis-les avec des noms commerciaux, prix réalistes et descriptions détaillées)` : ""}`
-    : `1. DÉDUIS au moins 1 produit depuis les données BMC/inputs/framework ci-dessus — ne laisse JAMAIS les produits vides`;
+    ? `1. Utilise les ${data.products.length} produits fournis${deducedProducts.length > 0 ? ` (dont ${deducedProducts.length} déduits du BMC — enrichis-les avec des noms commerciaux et prix réalistes)` : ""}`
+    : `1. DÉDUIS au moins 1 produit depuis les données ci-dessus — ne laisse JAMAIS les produits vides`;
 
   const serviceInstructions = hasServices
-    ? `2. Utilise les ${data.services.length} services fournis${deducedServices.length > 0 ? ` (dont ${deducedServices.length} déduits du BMC — enrichis-les)` : ""}`
-    : `2. DÉDUIS au moins 1 service depuis les données BMC/inputs/framework ci-dessus — ne laisse JAMAIS les services vides`;
+    ? `2. Utilise les ${data.services.length} services fournis${deducedServices.length > 0 ? ` (dont ${deducedServices.length} déduits du BMC)` : ""}`
+    : `2. DÉDUIS au moins 1 service depuis les données ci-dessus — ne laisse JAMAIS les services vides`;
 
   return `Génère le plan financier OVO pour cette entreprise :
 
@@ -460,35 +570,47 @@ ENTREPRISE :
 - Modèle : ${data.business_model}
 - Année courante : ${cy}
 - Employés actuels : ${data.employees || 0}
-- CA actuel estimé : ${data.existing_revenue || 0} FCFA
+- CA actuel estimé : ${totalCA > 0 ? totalCA.toLocaleString('fr-FR') : (data.existing_revenue || 0)} FCFA
+${prixMoyen > 0 ? `- Prix moyen unitaire (BMC) : ${prixMoyen.toLocaleString('fr-FR')} FCFA` : ""}
+${volumeAnnuel > 0 ? `- Volume annuel estimé (BMC) : ${volumeAnnuel.toLocaleString('fr-FR')} unités` : ""}
 
 PRODUITS (${(data.products || []).length}) :
 ${productsList}
 
 SERVICES (${(data.services || []).length}) :
 ${servicesList}
+${revenueByProductBlock}
+${historicalRevenueBlock}
+${cogsBlock}
+${opexBlock}
+${staffBlock}
+${capexBlock}
+${loansBlock}
+${projectionBlock}
+${kpisBlock}
+${investmentBlock}
+${sicBlock}
+${diagnosticBlock}
 
 BESOINS FINANCIERS :
 - Investissements démarrage : ${data.startup_costs || 0} FCFA
 - Prêt OVO souhaité : ${data.loan_needed || 0} FCFA
-${inputsBlock}
-${frameworkBlock}
-${sicBlock}
-${diagnosticBlock}
-${prevPlanBlock}
 
-${data.bmc_data ? `BUSINESS MODEL CANVAS :\n${JSON.stringify(data.bmc_data, null, 2)}` : ""}
-
-INSTRUCTIONS :
-Génère le JSON OVOFinancialPlanInput COMPLET avec :
+INSTRUCTIONS CRITIQUES :
 ${productInstructions}
 ${serviceInstructions}
 3. Au minimum 1 catégorie de staff (STAFF_CAT01)
 4. CAPEX réaliste pour les immobilisations nécessaires
 5. Prévisions sur 8 années (YEAR-2 à YEAR6)
 6. Scénario : TYPICAL_CASE
-7. BASE-TOI SUR TOUTES LES DONNÉES FINANCIÈRES ci-dessus pour des projections cohérentes et réalistes
-8. Les montants historiques (YEAR-2, YEAR-1, CURRENT YEAR) doivent correspondre aux données inputs/framework si disponibles
+
+CONTRAINTES DE COHÉRENCE ABSOLUES :
+- Les revenus historiques et projetés ci-dessus sont des DONNÉES RÉELLES — le total revenue par année DOIT correspondre
+- Pour chaque produit actif : volume = CA_produit / prix_unitaire, volume_h1 = volume × 0.45, volume_h2 = volume × 0.55
+- La SOMME des CA de tous les produits actifs DOIT correspondre au revenue total de chaque année
+- Les données YEAR-2 et YEAR-1 NE SONT PAS zéro si l'entreprise a un historique — utilise les données ci-dessus
+- Répartis le CA total entre les produits selon les % indiqués dans REVENUS PAR PRODUIT
+- Les OPEX, COGS, CAPEX et STAFF doivent être cohérents avec les données du plan intermédiaire ci-dessus
 
 JSON SCHEMA ATTENDU :
 {
