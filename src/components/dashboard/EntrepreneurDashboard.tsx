@@ -656,6 +656,7 @@ export default function EntrepreneurDashboard() {
               </div>
             )}
 
+            {selectedDeliv?.data && typeof selectedDeliv.data === 'object' ? (
               <div className="p-6">
                 {selectedModule === 'bmc' ? (
                   <BmcViewer data={selectedDeliv.data} />
