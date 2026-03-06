@@ -225,8 +225,11 @@ export default function CoachDashboard() {
               <Card className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-muted-foreground mb-4">Aucune donnée générée pour ce module.</p>
                 <Button onClick={() => handleGenerateAll(ent.id)} disabled={generating} className="gap-2">
-                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  Générer tous les livrables
+                  {generating && generationProgress ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> {generationProgress.name} ({generationProgress.current}/{generationProgress.total})...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4" /> Générer tous les livrables</>
+                  )}
                 </Button>
               </Card>
             )}

@@ -592,8 +592,8 @@ export default function EntrepreneurDashboard() {
           disabled={generating}
           className="gap-3 rounded-xl shadow-lg bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white px-5 py-3 h-auto"
         >
-          {generating ? (
-            <><Loader2 className="h-5 w-5 animate-spin" /> Génération...</>
+          {generating && generationProgress ? (
+            <><Loader2 className="h-5 w-5 animate-spin" /> {generationProgress.name} ({generationProgress.current}/{generationProgress.total})...</>
           ) : (
             <><Sparkles className="h-5 w-5" /> Regénérer les livrables</>
           )}
