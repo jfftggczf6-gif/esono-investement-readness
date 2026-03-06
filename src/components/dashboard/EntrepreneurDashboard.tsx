@@ -261,6 +261,96 @@ export default function EntrepreneurDashboard() {
 
   const handleSignOut = async () => { await signOut(); navigate('/login'); };
 
+  const handleGenerateOvoPlan = async () => {
+    if (!enterprise) return;
+    setGeneratingOvoPlan(true);
+    setOvoDownloadUrl(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non authentifié");
+
+      // Gather existing deliverable data for payload enrichment
+      const bmcDeliv = deliverables.find((d: any) => d.type === 'bmc_analysis');
+      const inputsDeliv = deliverables.find((d: any) => d.type === 'inputs_data');
+      const bmcData = (bmcDeliv?.data && typeof bmcDeliv.data === 'object') ? bmcDeliv.data as Record<string, any> : {};
+      const inputsData = (inputsDeliv?.data && typeof inputsDeliv.data === 'object') ? inputsDeliv.data as Record<string, any> : {};
+
+      const payload = {
+        user_id: user?.id,
+        company: enterprise.name,
+        country: enterprise.country || "IVORY COAST",
+        sector: enterprise.sector || "",
+        business_model: bmcData?.business_model || bmcData?.proposition_valeur || "",
+        current_year: new Date().getFullYear(),
+        employees: enterprise.employees_count || 0,
+        existing_revenue: inputsData?.revenue || inputsData?.chiffre_affaires || 0,
+        startup_costs: inputsData?.startup_costs || inputsData?.couts_demarrage || 0,
+        loan_needed: inputsData?.loan_needed || inputsData?.besoin_financement || 0,
+        products: bmcData?.products || bmcData?.produits || [],
+        services: bmcData?.services || [],
+        bmc_data: bmcData,
+      };
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-ovo-plan`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+        throw new Error(err.error || 'La génération a échoué');
+      }
+
+      const result = await response.json();
+      const downloadUrl = result.download_url;
+      setOvoDownloadUrl(downloadUrl);
+
+      // Save to deliverables
+      await supabase.from('deliverables').upsert(
+        {
+          enterprise_id: enterprise.id,
+          type: 'plan_ovo_excel' as any,
+          file_url: downloadUrl,
+          ai_generated: true,
+          data: { file_name: result.file_name || 'PlanFinancierOVO.xlsm', generated_at: new Date().toISOString() },
+        },
+        { onConflict: 'enterprise_id,type' }
+      );
+
+      toast.success('Plan Financier OVO généré avec succès !');
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'La génération a échoué, veuillez réessayer');
+    } finally {
+      setGeneratingOvoPlan(false);
+    }
+  };
+
+  const handleDownloadOvoFile = async (url: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(url, {
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
+      if (!response.ok) throw new Error('Erreur de téléchargement');
+      const blob = await response.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${enterprise?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'entreprise'}_PlanFinancierOVO.xlsm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      toast.success('Fichier téléchargé !');
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur de téléchargement');
+    }
+  };
+
   const handleDownload = async (type: string, format: string) => {
     if (!enterprise) return;
     try {
