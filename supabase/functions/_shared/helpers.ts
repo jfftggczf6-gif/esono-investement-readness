@@ -211,18 +211,20 @@ export async function verifyAndGetContext(req: Request) {
 }
 
 export async function callAI(systemPrompt: string, userPrompt: string) {
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
+  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
 
-  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${lovableApiKey}`,
+      "x-api-key": anthropicApiKey,
+      "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 8192,
+      system: systemPrompt,
       messages: [
-        { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
     }),
@@ -231,14 +233,18 @@ export async function callAI(systemPrompt: string, userPrompt: string) {
   if (!aiResponse.ok) {
     const status = aiResponse.status;
     if (status === 429) throw { status: 429, message: "Trop de requêtes, réessayez dans quelques instants." };
-    if (status === 402) throw { status: 402, message: "Crédits IA insuffisants." };
+    if (status === 402 || status === 400) {
+      const errText = await aiResponse.text();
+      console.error("AI error:", status, errText);
+      throw { status: 402, message: "Erreur API Anthropic: " + errText.substring(0, 200) };
+    }
     const errText = await aiResponse.text();
     console.error("AI error:", status, errText);
     throw { status: 500, message: "Erreur IA" };
   }
 
   const aiResult = await aiResponse.json();
-  const content = aiResult.choices?.[0]?.message?.content || "";
+  const content = aiResult.content?.[0]?.text || "";
 
   try {
     // Clean markdown wrapping
