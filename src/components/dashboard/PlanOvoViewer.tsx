@@ -364,9 +364,9 @@ export default function PlanOvoViewer({ data }: { data: any }) {
               if (!s) return null;
               const icons: Record<string, string> = { optimiste: '🚀', realiste: '📊', pessimiste: '⚠️' };
               const colors: Record<string, string> = { 
-                optimiste: 'border-green-500/30 bg-green-500/5', 
+                optimiste: 'border-success/30 bg-success/5', 
                 realiste: 'border-primary/30 bg-primary/5', 
-                pessimiste: 'border-orange-500/30 bg-orange-500/5' 
+                pessimiste: 'border-warning/30 bg-warning/5' 
               };
               return (
                 <div key={key} className={`p-3 rounded-lg border ${colors[key]}`}>
