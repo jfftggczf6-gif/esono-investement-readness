@@ -404,10 +404,12 @@ export default function CoachDashboard() {
     if (!confirm("Partager tous les livrables privés avec l'entrepreneur ?")) return;
     try {
       const now = new Date().toISOString();
-      await supabase.from('deliverables')
-        .update({ visibility: 'shared', shared_at: now } as any)
+      const { error } = await (supabase.from('deliverables') as any)
+        .update({ visibility: 'shared', shared_at: now })
         .eq('enterprise_id', enterpriseId)
-        .eq('visibility' as any, 'private');
+        .eq('generated_by', 'coach')
+        .eq('visibility', 'private');
+      if (error) throw error;
       toast.success('Tous les livrables partagés !');
       await fetchData();
     } catch (err: any) {
