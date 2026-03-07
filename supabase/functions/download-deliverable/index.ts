@@ -1126,6 +1126,52 @@ serve(async (req) => {
         }
       }
 
+      // ODD: Servir le .xlsm pré-généré depuis ovo-outputs
+      if (deliverableType === "odd_analysis") {
+        // Try fetching pre-built odd_excel deliverable
+        const { data: oddExcel } = await supabase
+          .from("deliverables")
+          .select("data, file_url")
+          .eq("enterprise_id", enterpriseId)
+          .eq("type", "odd_excel")
+          .maybeSingle();
+
+        const fileName = (oddExcel?.data as any)?.file_name;
+
+        if (fileName) {
+          const { data: fileBlob, error: dlErr } = await supabase.storage
+            .from("ovo-outputs")
+            .download(fileName);
+
+          if (!dlErr && fileBlob) {
+            const bytes = new Uint8Array(await fileBlob.arrayBuffer());
+            return new Response(bytes, {
+              headers: {
+                ...corsHeaders,
+                "Content-Type": "application/vnd.ms-excel.sheet.macroEnabled.12",
+                "Content-Disposition": `attachment; filename="${safeName}_ODD.xlsm"`,
+              },
+            });
+          }
+          console.warn("[download] ODD Excel download failed:", dlErr?.message);
+        }
+
+        // Fallback: generate on-the-fly
+        try {
+          const { fillOddExcelTemplate } = await import("../_shared/odd-excel-template.ts");
+          const xlsmBytes = await fillOddExcelTemplate(deliv.data, ent.name, supabase);
+          return new Response(xlsmBytes, {
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/vnd.ms-excel.sheet.macroEnabled.12",
+              "Content-Disposition": `attachment; filename="${safeName}_ODD.xlsm"`,
+            },
+          });
+        } catch (oddErr) {
+          console.warn("[download] ODD template filling failed:", oddErr);
+        }
+      }
+
       // FALLBACK: XLSX basique existant
       const xlsxBuilders: Record<string, (d: any) => any> = {
         inputs_data: buildInputsXlsx,

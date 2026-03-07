@@ -173,12 +173,12 @@ serve(async (req) => {
     let excelGenerated = false;
     try {
       const xlsxBytes = await fillOddExcelTemplate(data, ent.name, ctx.supabase);
-      const fileName = `odd_${ctx.enterprise_id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.xlsx`;
+      const fileName = `odd_${ctx.enterprise_id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.xlsm`;
 
       const { error: uploadErr } = await ctx.supabase.storage
         .from("ovo-outputs")
         .upload(fileName, xlsxBytes, {
-          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          contentType: "application/vnd.ms-excel.sheet.macroEnabled.12",
           cacheControl: "no-store",
           upsert: true,
         });
@@ -194,7 +194,7 @@ serve(async (req) => {
         type: "odd_excel",
         data: {
           generated_at: new Date().toISOString(),
-          template: "ODD_template.xlsx",
+          template: "ODD_template.xlsm",
           size_bytes: xlsxBytes.byteLength,
           file_name: fileName,
         },
