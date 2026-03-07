@@ -317,13 +317,13 @@ async function callClaudeAPI(data: EntrepreneurData): Promise<Record<string, unk
 
   let lastError: Error | null = null;
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      console.log(`[Claude] Attempt ${attempt}/3`);
+      console.log(`[Claude] Attempt ${attempt}/2`);
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        signal: AbortSignal.timeout(90000), // fail-fast après 90s
+        signal: AbortSignal.timeout(150000), // fail-fast après 150s
         headers: {
           "Content-Type": "application/json",
           "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
@@ -391,11 +391,11 @@ async function callClaudeAPI(data: EntrepreneurData): Promise<Record<string, unk
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       console.error(`[Claude] Attempt ${attempt} failed:`, lastError.message);
-      if (attempt < 3) await sleep(2000 * attempt);
+      if (attempt < 2) await sleep(2000 * attempt);
     }
   }
 
-  throw new Error(`Claude API failed after 3 attempts: ${lastError?.message}`);
+  throw new Error(`Claude API failed after 2 attempts: ${lastError?.message}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────
