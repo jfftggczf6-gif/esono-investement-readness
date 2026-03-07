@@ -277,6 +277,12 @@ export async function fillOddExcelTemplate(
     console.warn("[odd-excel] Feuille INDICATEURS non trouvée, ignorée");
   }
 
+  // Re-inject VBA without compression to preserve macro integrity
+  if (vbaBytes) {
+    zip.file("xl/vbaProject.bin", vbaBytes, { compression: "STORE" });
+    console.log(`[odd-excel] VBA project preserved (${vbaBytes.byteLength} bytes, STORE)`);
+  }
+
   console.log(`[odd-excel] ✅ Template rempli pour "${enterpriseName}"`);
   return await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
 }
