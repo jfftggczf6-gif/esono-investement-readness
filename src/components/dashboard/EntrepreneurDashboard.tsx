@@ -15,7 +15,7 @@ import {
   Stethoscope, ListChecks, FileText, Target,
   Plus, Building2, Upload, Sparkles, Download,
   LogOut, User, Clock, CheckCircle2, Loader2, X, FileUp,
-  BookOpen, Lock, FolderPlus
+  BookOpen, Lock, FolderPlus, Pencil
 } from 'lucide-react';
 import BmcViewer from './BmcViewer';
 import SicViewer from './SicViewer';
