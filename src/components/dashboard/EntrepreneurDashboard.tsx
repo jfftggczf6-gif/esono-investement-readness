@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   LayoutGrid, Globe, FileSpreadsheet, BarChart3,
@@ -71,6 +71,9 @@ export default function EntrepreneurDashboard() {
   const [editLegalForm, setEditLegalForm] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const [extractedInfo, setExtractedInfo] = useState<{ name: string | null; country: string | null; sector: string | null } | null>(null);
+  const [showExtractDialog, setShowExtractDialog] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const docInputRef = useRef<HTMLInputElement>(null);
   const finInputRef = useRef<HTMLInputElement>(null);
   const extraInputRef = useRef<HTMLInputElement>(null);
@@ -123,18 +126,76 @@ export default function EntrepreneurDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enterprise?.id, deliverables.length]);
 
+  const extractEnterpriseInfo = async (enterpriseId: string) => {
+    try {
+      setExtracting(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-enterprise-info`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ enterprise_id: enterpriseId }),
+        }
+      );
+      if (!response.ok) return;
+      const info = await response.json();
+      if (info.name || info.country || info.sector) {
+        // Check if info differs from current enterprise
+        const differs = (info.name && info.name !== enterprise?.name) ||
+          (info.country && info.country !== enterprise?.country) ||
+          (info.sector && info.sector !== enterprise?.sector);
+        if (differs) {
+          setExtractedInfo(info);
+          setShowExtractDialog(true);
+        }
+      }
+    } catch (e) {
+      console.error('Extraction error:', e);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleConfirmExtraction = async () => {
+    if (!enterprise || !extractedInfo) return;
+    setSaving(true);
+    try {
+      const updates: any = {};
+      if (extractedInfo.name) updates.name = extractedInfo.name;
+      if (extractedInfo.country) updates.country = extractedInfo.country;
+      if (extractedInfo.sector) updates.sector = extractedInfo.sector;
+      const { error } = await supabase.from('enterprises').update(updates).eq('id', enterprise.id);
+      if (error) throw error;
+      toast.success('Informations mises à jour !');
+      setShowExtractDialog(false);
+      setExtractedInfo(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: string) => {
     const files = e.target.files;
-    if (!files || !enterprise) return;
+    if (!enterprise) return;
     setUploading(category);
     try {
-      for (const file of Array.from(files)) {
+      for (const file of Array.from(files || [])) {
         const filePath = `${enterprise.id}/${file.name}`;
         const { error } = await supabase.storage.from('documents').upload(filePath, file, { upsert: true });
         if (error) throw error;
       }
-      toast.success(`${files.length} fichier(s) uploadé(s)`);
+      toast.success(`${files?.length || 0} fichier(s) uploadé(s)`);
       await fetchData();
+      // Trigger enterprise info extraction in background
+      const hasDeliverables = deliverables.length > 0;
+      if (!hasDeliverables) {
+        extractEnterpriseInfo(enterprise.id);
+      }
     } catch (err: any) {
       toast.error(err.message || "Erreur d'upload");
     } finally {
@@ -742,6 +803,47 @@ export default function EntrepreneurDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ===== EXTRACT ENTERPRISE INFO DIALOG ===== */}
+      <Dialog open={showExtractDialog} onOpenChange={setShowExtractDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Informations détectées</DialogTitle>
+            <DialogDescription>
+              D'après vos documents, nous avons identifié les informations suivantes :
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {extractedInfo?.name && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                <span className="text-sm text-muted-foreground">Nom</span>
+                <span className="text-sm font-semibold">{extractedInfo.name}</span>
+              </div>
+            )}
+            {extractedInfo?.country && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                <span className="text-sm text-muted-foreground">Pays</span>
+                <span className="text-sm font-semibold">{extractedInfo.country}</span>
+              </div>
+            )}
+            {extractedInfo?.sector && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                <span className="text-sm text-muted-foreground">Secteur</span>
+                <span className="text-sm font-semibold">{extractedInfo.sector}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => { setShowExtractDialog(false); setExtractedInfo(null); }}>
+              Non merci
+            </Button>
+            <Button onClick={handleConfirmExtraction} disabled={saving}>
+              {saving ? 'Mise à jour...' : 'Oui, mettre à jour'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <div className="flex-none h-12 bg-[hsl(222,47%,15%)] flex items-center px-6 gap-6">
         <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/60">Investment Readiness</span>
