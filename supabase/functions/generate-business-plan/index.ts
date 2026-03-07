@@ -468,6 +468,34 @@ async function generateWordDoc(bp: any): Promise<Uint8Array> {
   return new Uint8Array(buffer);
 }
 
+// ── STRIP CUSTOM XML ──────────────────────────────────────────────────
+async function stripCustomXml(docxBuffer: Uint8Array): Promise<Uint8Array> {
+  const zip = await JSZip.loadAsync(docxBuffer);
+
+  // Remove all customXml entries
+  const toRemove = Object.keys(zip.files).filter(f => f.startsWith("customXml/"));
+  toRemove.forEach(f => zip.remove(f));
+
+  // Patch [Content_Types].xml — remove Override entries for customXml
+  const ctFile = zip.file("[Content_Types].xml");
+  if (ctFile) {
+    let ct = await ctFile.async("string");
+    ct = ct.replace(/<Override[^>]*PartName="\/customXml\/[^"]*"[^>]*\/>/g, "");
+    zip.file("[Content_Types].xml", ct);
+  }
+
+  // Patch word/_rels/document.xml.rels — remove Relationship entries for customXml
+  const relsFile = zip.file("word/_rels/document.xml.rels");
+  if (relsFile) {
+    let rels = await relsFile.async("string");
+    rels = rels.replace(/<Relationship[^>]*Target="[^"]*customXml[^"]*"[^>]*\/>/g, "");
+    zip.file("word/_rels/document.xml.rels", rels);
+  }
+
+  const cleaned = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+  return cleaned;
+}
+
 // ── MAIN HANDLER ──────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
