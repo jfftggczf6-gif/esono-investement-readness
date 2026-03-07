@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable } from "../_shared/helpers.ts";
-import { normalizePlanOvo } from "../_shared/normalizers.ts";
+import { normalizePlanOvo, enforceFrameworkConstraints } from "../_shared/normalizers.ts";
 
 const SYSTEM_PROMPT = `Tu es un modélisateur financier senior spécialisé dans les PME africaines (focus: Côte d'Ivoire, Afrique de l'Ouest).
 À partir des données historiques fournies, génère un plan financier réaliste sur 8 ans (N-2 à N+5) en JSON strict.
@@ -174,7 +174,11 @@ serve(async (req) => {
     ));
     
     // Normalize: fix years, ensure consistency, fill gaps
-    const data = normalizePlanOvo(rawData);
+    let data = normalizePlanOvo(rawData);
+    
+    // Enforce Framework constraints: overwrite projections with exact Framework values
+    const frameworkData = allData.framework;
+    data = enforceFrameworkConstraints(data, frameworkData);
 
     await saveDeliverable(ctx.supabase, ctx.enterprise_id, "plan_ovo", data, "plan_ovo");
 

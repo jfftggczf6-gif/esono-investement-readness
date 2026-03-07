@@ -405,6 +405,185 @@ export function normalizePlanOvo(raw: any): any {
   return d;
 }
 
+// ===== ENFORCE FRAMEWORK CONSTRAINTS ON PLAN OVO =====
+/**
+ * Overwrites Plan OVO projection years (year2-year6) with exact Framework values
+ * and recalculates all derived fields deterministically.
+ */
+export function enforceFrameworkConstraints(data: any, frameworkData: any): any {
+  if (!data || !frameworkData?.projection_5ans?.lignes) return data;
+
+  const lignes = frameworkData.projection_5ans.lignes;
+  if (!Array.isArray(lignes) || lignes.length === 0) return data;
+
+  const PROJ_KEYS = ['year2', 'year3', 'year4', 'year5', 'year6'];
+  const AN_KEYS = ['an1', 'an2', 'an3', 'an4', 'an5'];
+
+  // Helper: find a ligne by label patterns
+  const findLigne = (...patterns: string[]) => {
+    return lignes.find((l: any) => {
+      const lb = (l.poste || l.libelle || '').toLowerCase();
+      return patterns.some(p => lb.includes(p));
+    });
+  };
+
+  const caLine = findLigne('ca total', 'chiffre', 'revenue', 'ca ');
+  const mbLine = findLigne('marge brute', 'gross');
+  const ebitdaLine = findLigne('ebitda');
+  const rnLine = findLigne('résultat net', 'resultat net', 'net profit');
+  const cfLine = findLigne('cash', 'trésorerie', 'tresorerie');
+
+  // Overwrite each projection year with framework values
+  const overwrite = (series: any, ligne: any) => {
+    if (!ligne || !series) return;
+    for (let i = 0; i < 5; i++) {
+      const val = toNumber(ligne[AN_KEYS[i]], undefined as any);
+      if (val !== undefined && !isNaN(val)) {
+        series[PROJ_KEYS[i]] = val;
+      }
+    }
+  };
+
+  overwrite(data.revenue, caLine);
+  overwrite(data.gross_profit, mbLine);
+  overwrite(data.ebitda, ebitdaLine);
+  overwrite(data.net_profit, rnLine);
+  overwrite(data.cashflow, cfLine);
+
+  // Recalculate COGS = revenue - gross_profit
+  for (const yk of PROJ_KEYS) {
+    data.cogs[yk] = data.revenue[yk] - data.gross_profit[yk];
+    data.gross_margin_pct[yk] = data.revenue[yk] > 0
+      ? (data.gross_profit[yk] / data.revenue[yk]) * 100 : 0;
+    data.ebitda_margin_pct[yk] = data.revenue[yk] > 0
+      ? (data.ebitda[yk] / data.revenue[yk]) * 100 : 0;
+  }
+
+  // Adjust OPEX proportionally so that total_opex = gross_profit - ebitda
+  if (data.opex) {
+    const opexFields = ['staff_salaries', 'marketing', 'office_costs', 'travel', 'insurance', 'maintenance', 'third_parties', 'other'];
+    for (const yk of PROJ_KEYS) {
+      const targetOpex = data.gross_profit[yk] - data.ebitda[yk];
+      const currentOpex = opexFields.reduce((sum, f) => sum + (data.opex[f]?.[yk] || 0), 0);
+      if (currentOpex > 0 && targetOpex > 0) {
+        const ratio = targetOpex / currentOpex;
+        for (const f of opexFields) {
+          if (data.opex[f]) {
+            data.opex[f][yk] = Math.round(data.opex[f][yk] * ratio);
+          }
+        }
+      }
+    }
+  }
+
+  // Recalculate investment metrics deterministically
+  if (data.investment_metrics && data.cashflow) {
+    const discountRate = data.investment_metrics.discount_rate || 0.12;
+    const initialInv = data.funding_need || 0;
+
+    // NPV calculation
+    const cfValues = PROJ_KEYS.map((yk, i) => data.cashflow[yk] / Math.pow(1 + discountRate, i + 1));
+    data.investment_metrics.van = Math.round(cfValues.reduce((a: number, b: number) => a + b, 0) - initialInv);
+
+    // IRR approximation (Newton-Raphson)
+    let irr = 0.1;
+    for (let iter = 0; iter < 50; iter++) {
+      let npv = -initialInv;
+      let dnpv = 0;
+      for (let i = 0; i < 5; i++) {
+        const cf = data.cashflow[PROJ_KEYS[i]];
+        npv += cf / Math.pow(1 + irr, i + 1);
+        dnpv -= (i + 1) * cf / Math.pow(1 + irr, i + 2);
+      }
+      if (Math.abs(dnpv) < 1e-10) break;
+      irr = irr - npv / dnpv;
+      if (Math.abs(npv) < 1000) break;
+    }
+    data.investment_metrics.tri = Math.round(irr * 10000) / 10000;
+
+    // CAGR Revenue
+    const revCY = data.revenue.current_year || data.revenue.year2;
+    const revY6 = data.revenue.year6;
+    if (revCY > 0 && revY6 > 0) {
+      data.investment_metrics.cagr_revenue = Math.round((Math.pow(revY6 / revCY, 1 / 5) - 1) * 10000) / 10000;
+    }
+
+    // CAGR EBITDA
+    const ebCY = data.ebitda.current_year || data.ebitda.year2;
+    const ebY6 = data.ebitda.year6;
+    if (ebCY > 0 && ebY6 > 0) {
+      data.investment_metrics.cagr_ebitda = Math.round((Math.pow(ebY6 / ebCY, 1 / 5) - 1) * 10000) / 10000;
+    }
+
+    // ROI
+    if (initialInv > 0) {
+      const totalNet = PROJ_KEYS.reduce((sum, yk) => sum + (data.net_profit[yk] || 0), 0);
+      data.investment_metrics.roi = Math.round((totalNet / initialInv) * 100) / 100;
+    }
+
+    // Payback
+    if (initialInv > 0) {
+      let cumCf = 0;
+      for (let i = 0; i < 5; i++) {
+        cumCf += data.cashflow[PROJ_KEYS[i]];
+        if (cumCf >= initialInv) {
+          data.investment_metrics.payback_years = i + 1;
+          break;
+        }
+      }
+    }
+  }
+
+  // Update scenarios VAN/TRI with proportional adjustment
+  if (data.scenarios) {
+    for (const sc of ['optimiste', 'realiste', 'pessimiste']) {
+      if (data.scenarios[sc]) {
+        data.scenarios[sc].revenue_year5 = data.revenue.year6 || data.scenarios[sc].revenue_year5;
+        data.scenarios[sc].ebitda_year5 = data.ebitda.year6 || data.scenarios[sc].ebitda_year5;
+        data.scenarios[sc].net_profit_year5 = data.net_profit.year6 || data.scenarios[sc].net_profit_year5;
+      }
+    }
+  }
+
+  return data;
+}
+
+// ===== SYNC BUSINESS PLAN FINANCIAL TABLE WITH PLAN OVO =====
+export function syncBusinessPlanWithPlanOvo(bpData: any, planOvoData: any): any {
+  if (!bpData || !planOvoData?.revenue) return bpData;
+
+  const ft = bpData.financier_tableau;
+  if (!ft) return bpData;
+
+  const fmt = (v: number) => {
+    if (!v && v !== 0) return "0 FCFA";
+    return new Intl.NumberFormat('fr-FR').format(Math.round(v)) + " FCFA";
+  };
+
+  const yearMap = [
+    { target: 'annee1', source: 'year2' },
+    { target: 'annee2', source: 'year3' },
+    { target: 'annee3', source: 'year4' },
+  ];
+
+  for (const { target, source } of yearMap) {
+    if (!ft[target]) ft[target] = {};
+    ft[target].revenu = fmt(planOvoData.revenue[source]);
+    ft[target].marge_brute = fmt(planOvoData.gross_profit[source]);
+    ft[target].benefice_net = fmt(planOvoData.net_profit[source]);
+    ft[target].tresorerie_finale = fmt(planOvoData.cashflow[source]);
+
+    // Depenses = COGS + total OPEX
+    const totalOpex = planOvoData.opex
+      ? Object.values(planOvoData.opex).reduce((sum: number, cat: any) => sum + (cat?.[source] || 0), 0)
+      : 0;
+    ft[target].depenses = fmt((planOvoData.cogs?.[source] || 0) + (totalOpex as number));
+  }
+
+  bpData.financier_tableau = ft;
+  return bpData;
+}
+
 // ===== AUTO NORMALIZE BY TYPE =====
 export function normalizeByType(type: string, data: any): any {
   const normalizers: Record<string, (d: any) => any> = {

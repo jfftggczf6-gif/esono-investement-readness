@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable } from "../_shared/helpers.ts";
+import { syncBusinessPlanWithPlanOvo } from "../_shared/normalizers.ts";
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, WidthType, BorderStyle, ShadingType, LevelFormat, PageBreak, Header, Footer } from "npm:docx@8";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "npm:jszip@3";
@@ -718,6 +719,13 @@ serve(async (req) => {
     const bpJson = { ...part1, ...part2 };
     bpJson.score = bpJson.score || part1.score || 50;
     bpJson.company_name = bpJson.company_name || ent.name;
+
+    // Sync financial table with Plan OVO synchronized data
+    const planOvoData = ctx.deliverableMap["plan_ovo"];
+    if (planOvoData?.revenue) {
+      console.log("[BP] Syncing financier_tableau with Plan OVO data...");
+      syncBusinessPlanWithPlanOvo(bpJson, planOvoData);
+    }
 
     console.log("[BP] Merged, generating Word document...");
 
