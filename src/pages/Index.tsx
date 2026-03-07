@@ -11,12 +11,11 @@ import { Button } from '@/components/ui/button';
 const MODULES = [
   { step: 1, code: 'bmc', title: 'Business Model Canvas', desc: '9 blocs — Analysez votre modèle économique', icon: LayoutGrid, category: 'hybrid', deliverables: ['Excel BMC', 'HTML Diagnostic'] },
   { step: 2, code: 'sic', title: 'Social Impact Canvas', desc: '5 sections, 14 questions, ODD, SMART', icon: Globe, category: 'hybrid', deliverables: ['Excel SIC', 'HTML Diagnostic'] },
-  { step: 3, code: 'inputs', title: 'Données Financières', desc: 'Historiques, RH, CAPEX, hypothèses', icon: FileSpreadsheet, category: 'hybrid', deliverables: ['Excel Inputs', 'Rapport validation'] },
-  { step: 4, code: 'framework', title: 'Plan Financier Intermédiaire', desc: 'Modélisation financière 5 ans, ratios', icon: BarChart3, category: 'automatic', deliverables: ['Excel Framework (8 feuilles)'] },
-  { step: 5, code: 'diagnostic', title: 'Diagnostic Expert', desc: 'Score crédibilité /100, risques, plan action', icon: Stethoscope, category: 'automatic', deliverables: ['HTML Diagnostic Expert'] },
-  { step: 6, code: 'plan_ovo', title: 'Plan Financier Final', desc: 'Projections 3 scénarios sur 5 ans', icon: ListChecks, category: 'automatic', deliverables: ['Plan Financier Final'] },
-  { step: 7, code: 'business_plan', title: 'Business Plan', desc: 'Document complet max 20 pages', icon: FileText, category: 'automatic', deliverables: ['Business Plan (.docx)'] },
-  { step: 8, code: 'odd', title: 'Due Diligence ODD', desc: 'Évaluation investment readiness', icon: Target, category: 'automatic', deliverables: ['ODD Template'] },
+  { step: 3, code: 'framework', title: 'Plan Financier Intermédiaire', desc: 'Modélisation financière 5 ans, ratios', icon: BarChart3, category: 'automatic', deliverables: ['Excel Framework (8 feuilles)'] },
+  { step: 4, code: 'diagnostic', title: 'Diagnostic Expert', desc: 'Score crédibilité /100, risques, plan action', icon: Stethoscope, category: 'automatic', deliverables: ['HTML Diagnostic Expert'] },
+  { step: 5, code: 'plan_ovo', title: 'Plan Financier Final', desc: 'Projections 3 scénarios sur 5 ans', icon: ListChecks, category: 'automatic', deliverables: ['Plan Financier Final'] },
+  { step: 6, code: 'business_plan', title: 'Business Plan', desc: 'Document complet max 20 pages', icon: FileText, category: 'automatic', deliverables: ['Business Plan (.docx)'] },
+  { step: 7, code: 'odd', title: 'Due Diligence ODD', desc: 'Évaluation investment readiness', icon: Target, category: 'automatic', deliverables: ['ODD Template'] },
 ];
 
 export default function Index() {
