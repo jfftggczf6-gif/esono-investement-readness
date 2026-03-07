@@ -39,7 +39,7 @@ const DELIVERABLE_CONFIG = [
   { type: 'diagnostic_data', label: 'Diagnostic Expert', formats: ['html', 'json'], icon: '🩺' },
   { type: 'plan_ovo', label: 'Plan Financier Final', formats: ['html', 'xlsx'], icon: '📋' },
   { type: 'business_plan', label: 'Business Plan', formats: ['html', 'json', 'docx'], icon: '📄' },
-  { type: 'odd_analysis', label: 'Due Diligence ODD', formats: ['html', 'json'], icon: '✅' },
+  { type: 'odd_analysis', label: 'ODD (17 Objectifs de Développement Durable)', formats: ['html', 'json'], icon: '🌍' },
 ];
 
 export default function EntrepreneurDashboard() {

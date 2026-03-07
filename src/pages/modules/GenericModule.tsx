@@ -64,13 +64,10 @@ const MODULE_INFO: Record<string, { title: string; description: string; fields: 
     ],
   },
   odd: {
-    title: 'Due Diligence ODD',
-    description: 'Checklist Investment Readiness',
+    title: 'ODD — Objectifs de Développement Durable',
+    description: 'Évaluation de l\'alignement avec les 17 ODD de l\'ONU (basée sur BMC + SIC)',
     fields: [
-      { id: 'legal_compliance', label: 'Conformité légale', placeholder: 'Sera généré automatiquement...' },
-      { id: 'governance', label: 'Gouvernance', placeholder: 'Sera généré automatiquement...' },
-      { id: 'financial_health', label: 'Santé financière', placeholder: 'Sera généré automatiquement...' },
-      { id: 'readiness_score', label: 'Score de readiness', placeholder: 'Sera généré automatiquement...' },
+      { id: 'bmcRequired', label: 'Prérequis', placeholder: 'Le BMC ou SIC doit être généré avant cette analyse.' },
     ],
   },
 };

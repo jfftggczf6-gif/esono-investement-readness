@@ -220,13 +220,51 @@ export function normalizeBusinessPlan(raw: any): any {
 }
 
 // ===== ODD NORMALIZER =====
-export function normalizeOdd(raw: any): any {
-  if (!raw) return raw;
-  const d = { ...raw };
-  d.score = toNumber(pick(d, 'score', 'score_global'), 0);
-  d.red_flags = toArray(pick(d, 'red_flags', 'drapeaux_rouges', 'alertes'));
-  d.actions_prioritaires = d.actions_prioritaires || d.priority_actions || [];
-  return d;
+export function normalizeOdd(raw: unknown): Record<string, unknown> {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+
+  const evalCibles = r.evaluation_cibles_odd as Record<string, unknown> | undefined;
+  const cibles = Array.isArray(evalCibles?.cibles) ? evalCibles!.cibles : [];
+  const resumeParOdd = (evalCibles?.resume_par_odd && typeof evalCibles.resume_par_odd === "object")
+    ? evalCibles.resume_par_odd
+    : {};
+
+  const indImpact = r.indicateurs_impact as Record<string, unknown> | undefined;
+  const indicateurs = Array.isArray(indImpact?.indicateurs) ? indImpact!.indicateurs : [];
+
+  const circularite = r.circularite as Record<string, unknown> | undefined;
+  const synthese = r.synthese as Record<string, unknown> | undefined;
+  const metadata = r.metadata as Record<string, unknown> | undefined;
+
+  return {
+    metadata: {
+      nom_entreprise: metadata?.nom_entreprise ?? "",
+      pays: metadata?.pays ?? "",
+      secteur: metadata?.secteur ?? "",
+      date_generation: metadata?.date_generation ?? new Date().toISOString().split("T")[0],
+      version: metadata?.version ?? 1,
+      livrables_utilises: Array.isArray(metadata?.livrables_utilises)
+        ? metadata!.livrables_utilises
+        : ["bmc", "sic"],
+      total_cibles_evaluees: cibles.length,
+    },
+    informations_projet: r.informations_projet ?? {},
+    evaluation_cibles_odd: {
+      cibles,
+      resume_par_odd: resumeParOdd,
+    },
+    indicateurs_impact: { indicateurs },
+    circularite: {
+      evaluation: circularite?.evaluation ?? "",
+      pratiques: Array.isArray(circularite?.pratiques) ? circularite!.pratiques : [],
+      cibles_odd_liees: Array.isArray(circularite?.cibles_odd_liees) ? circularite!.cibles_odd_liees : [],
+    },
+    synthese: {
+      odd_prioritaires: Array.isArray(synthese?.odd_prioritaires) ? synthese!.odd_prioritaires : [],
+      contribution_globale: synthese?.contribution_globale ?? "",
+      recommandations: Array.isArray(synthese?.recommandations) ? synthese!.recommandations : [],
+    },
+  };
 }
 
 // ===== PLAN OVO NORMALIZER =====

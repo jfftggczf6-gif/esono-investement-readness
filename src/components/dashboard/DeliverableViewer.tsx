@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import FrameworkViewerComponent from './FrameworkViewer';
 import PlanOvoViewerComponent from './PlanOvoViewer';
+import { OddViewer as OddViewerComponent } from './OddViewer';
 
 interface DeliverableViewerProps {
   moduleCode: string;
@@ -19,7 +20,7 @@ export default function DeliverableViewer({ moduleCode, data }: DeliverableViewe
     case 'diagnostic': return <DiagnosticViewer data={data} />;
     case 'plan_ovo': return <PlanOvoViewerComponent data={data} />;
     case 'business_plan': return <BusinessPlanViewer data={data} />;
-    case 'odd': return <OddViewer data={data} />;
+    case 'odd': return <OddViewerComponent data={data} />;
     default: return <GenericJsonViewer data={data} />;
   }
 }
@@ -640,82 +641,6 @@ function BusinessPlanViewer({ data }: { data: any }) {
   );
 }
 
-// ===== ODD VIEWER =====
-function OddViewer({ data }: { data: any }) {
-  const statusIcon = (s: string) => {
-    if (s === 'pass') return <CheckCircle2 className="h-3.5 w-3.5 text-success" />;
-    if (s === 'fail') return <XCircle className="h-3.5 w-3.5 text-destructive" />;
-    return <AlertTriangle className="h-3.5 w-3.5 text-warning" />;
-  };
-
-  return (
-    <div className="space-y-4">
-      <ScoreHeader title="Due Diligence ODD" score={data.score} subtitle={data.synthese} badge={data.readiness_level} />
-
-      {data.scores_par_categorie && (
-        <Card><CardContent className="py-4">
-          <h4 className="text-xs font-bold text-primary mb-3">📊 Scores par catégorie</h4>
-          <div className="space-y-2">
-            {Object.entries(data.scores_par_categorie).map(([key, cat]: [string, any]) => (
-              <div key={key}>
-                <div className="flex justify-between text-xs mb-0.5">
-                  <span className="capitalize font-medium">{key}</span>
-                  <span className={`font-bold ${cat.score >= 70 ? 'text-success' : cat.score >= 50 ? 'text-warning' : 'text-destructive'}`}>
-                    {cat.score}% ({cat.items_pass}/{cat.items_total})
-                  </span>
-                </div>
-                <Progress value={cat.score} className="h-1.5" />
-              </div>
-            ))}
-          </div>
-        </CardContent></Card>
-      )}
-
-      {data.checklist?.length > 0 && (
-        <Card><CardContent className="py-4">
-          <h4 className="text-xs font-bold text-primary mb-2">✅ Checklist</h4>
-          <div className="space-y-1">
-            {data.checklist.map((item: any, i: number) => (
-              <div key={i} className="flex items-start gap-2 p-2 rounded bg-muted/30 text-xs">
-                {statusIcon(item.status)}
-                <div className="flex-1">
-                  <span className="font-medium">{item.critere}</span>
-                  <Badge variant="outline" className="ml-1 text-[9px]">{item.categorie}</Badge>
-                  <p className="text-muted-foreground mt-0.5">{item.commentaire}</p>
-                  {item.status !== 'pass' && item.action_requise && (
-                    <p className="text-primary mt-0.5 font-medium">→ {item.action_requise}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent></Card>
-      )}
-
-      {data.red_flags?.length > 0 && (
-        <Card className="border-destructive/20"><CardContent className="py-3">
-          <h4 className="text-xs font-bold text-destructive mb-1">🚩 Red Flags</h4>
-          <ul className="text-xs text-destructive/80 space-y-0.5">{data.red_flags.map((r: string, i: number) => <li key={i}>• {r}</li>)}</ul>
-        </CardContent></Card>
-      )}
-
-      {data.actions_prioritaires?.length > 0 && (
-        <Card><CardContent className="py-4">
-          <h4 className="text-xs font-bold text-primary mb-2">🎯 Actions prioritaires</h4>
-          {data.actions_prioritaires.map((a: any, i: number) => (
-            <div key={i} className="p-2 rounded bg-muted/30 mb-1 text-xs">
-              <span className="font-medium">{a.action}</span>
-              <div className="flex gap-1 mt-0.5">
-                <Badge variant="outline" className="text-[9px]">{a.priorite}</Badge>
-                <Badge variant="outline" className="text-[9px]">{a.delai}</Badge>
-              </div>
-            </div>
-          ))}
-        </CardContent></Card>
-      )}
-    </div>
-  );
-}
 
 // ===== GENERIC FALLBACK =====
 function GenericJsonViewer({ data }: { data: any }) {
