@@ -726,6 +726,13 @@ export default function EntrepreneurDashboard() {
   const deliverablesCount = deliverables.length;
 
   // No enterprise yet
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (!enterprise) {
     return (
       <div className="min-h-screen bg-background">
