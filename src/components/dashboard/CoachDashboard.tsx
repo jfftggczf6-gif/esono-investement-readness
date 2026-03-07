@@ -1080,10 +1080,151 @@ export default function CoachDashboard() {
               <div className="lg:col-span-2">
                 <Card className="h-full">
                   <CardContent className="p-4">
+                    {/* ── Contextual download bars (same as entrepreneur) ── */}
+
+                    {/* Diagnostic */}
+                    {selectedModule === 'diagnostic' && selectedDeliv && (
+                      <div className="mb-4 rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center"><Stethoscope className="h-5 w-5 text-orange-600" /></div>
+                            <div><p className="text-sm font-semibold text-orange-900">Diagnostic Expert Global</p><p className="text-xs text-orange-600">Analyse complète avec SWOT et recommandations</p></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleDownloadCoach('diagnostic_data', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 text-white text-xs font-semibold hover:bg-orange-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                            <button onClick={() => handleGenerateModuleCoach('diagnostic', ent.id)} disabled={generatingModuleCoach === 'diagnostic'} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-orange-700 border border-orange-300 text-xs font-semibold hover:bg-orange-50 transition-colors">
+                              {generatingModuleCoach === 'diagnostic' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Regénérer
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* BMC */}
+                    {selectedModule === 'bmc' && selectedDeliv && (
+                      <div className="mb-4 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center"><LayoutGrid className="h-5 w-5 text-emerald-600" /></div>
+                            <div><p className="text-sm font-semibold text-emerald-900">Business Model Canvas</p><p className="text-xs text-emerald-600">Canvas complet avec analyse des 9 blocs</p></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleDownloadCoach('bmc_analysis', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                            <button onClick={() => handleGenerateModuleCoach('bmc', ent.id)} disabled={generatingModuleCoach === 'bmc'} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-emerald-700 border border-emerald-300 text-xs font-semibold hover:bg-emerald-50 transition-colors">
+                              {generatingModuleCoach === 'bmc' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Regénérer
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SIC */}
+                    {selectedModule === 'sic' && selectedDeliv && (
+                      <div className="mb-4 rounded-xl border border-teal-200 bg-gradient-to-r from-teal-50 to-cyan-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-teal-100 flex items-center justify-center"><Globe className="h-5 w-5 text-teal-600" /></div>
+                            <div><p className="text-sm font-semibold text-teal-900">Social Impact Canvas</p><p className="text-xs text-teal-600">Analyse d'impact social avec scoring</p></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleDownloadCoach('sic_analysis', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                            <button onClick={() => handleGenerateModuleCoach('sic', ent.id)} disabled={generatingModuleCoach === 'sic'} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-teal-700 border border-teal-300 text-xs font-semibold hover:bg-teal-50 transition-colors">
+                              {generatingModuleCoach === 'sic' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Regénérer
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Framework */}
+                    {selectedModule === 'framework' && selectedDeliv && (
+                      <div className="mb-4 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center"><FileSpreadsheet className="h-5 w-5 text-emerald-600" /></div>
+                            <div><p className="text-sm font-semibold text-emerald-900">Plan Financier Intermédiaire</p><p className="text-xs text-emerald-600">Framework rempli avec les données réelles</p></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleDownloadCoach('framework_data', 'xlsx', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Framework Excel (.xlsx)</button>
+                            <button onClick={() => handleDownloadCoach('framework_data', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-emerald-700 border border-emerald-300 text-xs font-semibold hover:bg-emerald-50 transition-colors"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Plan OVO */}
+                    {selectedModule === 'plan_ovo' && (
+                      <div className="mb-4 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center"><FileSpreadsheet className="h-5 w-5 text-emerald-600" /></div>
+                            <div><p className="text-sm font-semibold text-emerald-900">Plan Financier OVO (Excel)</p><p className="text-xs text-emerald-600">Fichier .xlsm rempli avec les données financières</p></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {entDelivs.find((d: any) => d.type === 'plan_ovo_excel')?.file_url ? (
+                              <>
+                                <button onClick={() => handleDownloadOvoCoach(ent.id, entDelivs)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Télécharger Plan Financier Excel</button>
+                                <button onClick={() => handleDownloadCoach('plan_ovo', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-emerald-700 border border-emerald-300 text-xs font-semibold hover:bg-emerald-50 transition-colors"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                              </>
+                            ) : selectedDeliv ? (
+                              <button onClick={() => handleDownloadCoach('plan_ovo', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Business Plan */}
+                    {selectedModule === 'business_plan' && (
+                      <div className="mb-4 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center"><FileText className="h-5 w-5 text-indigo-600" /></div>
+                            <div><p className="text-sm font-semibold text-indigo-900">Business Plan OVO (Word)</p><p className="text-xs text-indigo-600">BP complet au format OVO avec fichier Word</p></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {generatingModuleCoach === 'business_plan' ? (
+                              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 text-xs font-semibold"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Génération en cours… (30-90s)</div>
+                            ) : selectedDeliv?.data?._meta?.download_url ? (
+                              <>
+                                <button onClick={() => handleDownloadBpWordCoach(selectedDeliv.data._meta.download_url, ent.name)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Télécharger Word (.docx)</button>
+                                <button onClick={() => handleGenerateModuleCoach('business_plan', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-indigo-700 border border-indigo-300 text-xs font-semibold hover:bg-indigo-50 transition-colors"><Sparkles className="h-3.5 w-3.5" /> Regénérer</button>
+                              </>
+                            ) : (
+                              <button onClick={() => handleGenerateModuleCoach('business_plan', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-sm"><Sparkles className="h-3.5 w-3.5" /> Générer le Business Plan</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ODD */}
+                    {selectedModule === 'odd' && (
+                      <div className="mb-4 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center"><Target className="h-5 w-5 text-emerald-600" /></div>
+                            <div><p className="text-sm font-semibold text-emerald-900">Évaluation ODD (Excel)</p><p className="text-xs text-emerald-600">Template ODD rempli avec les évaluations</p></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {entDelivs.find((d: any) => d.type === 'odd_excel')?.file_url ? (
+                              <>
+                                <button onClick={() => handleDownloadOddExcelCoach(entDelivs)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> ODD Excel (.xlsm)</button>
+                                <button onClick={() => handleDownloadCoach('odd_analysis', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-emerald-700 border border-emerald-300 text-xs font-semibold hover:bg-emerald-50 transition-colors"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                              </>
+                            ) : selectedDeliv ? (
+                              <button onClick={() => handleDownloadCoach('odd_analysis', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Deliverable content ── */}
                     {renderDeliverableContent(selectedDeliv) || (
                       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-center">
-                        <Stethoscope className="h-10 w-10 mb-3 opacity-20" />
-                        <p className="font-medium text-sm">Aucune donnée pour ce livrable</p>
+                        <Sparkles className="h-10 w-10 mb-3 opacity-20" />
+                        <p className="font-medium text-sm">Prêt à être généré</p>
                         <p className="text-xs mt-1">Uploadez des documents et générez les livrables</p>
                       </div>
                     )}
@@ -1092,30 +1233,40 @@ export default function CoachDashboard() {
               </div>
             </div>
 
-            {/* Grille 8 icônes livrables (bas) */}
+            {/* ── Bottom module bar (entrepreneur style — 7 modules) ── */}
             <Card>
               <CardContent className="p-4">
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                  {MODULE_CONFIG.map(mod => {
+                <div className="flex items-end justify-center gap-6">
+                  {MIRROR_MODULES.map(mod => {
                     const dType = DELIV_MAP[mod.code];
                     const d = entDelivs.find((x: any) => x.type === dType);
+                    const m = entMods.find((x: any) => x.module === mod.code);
                     const isSelected = selectedModule === mod.code;
+                    const isCompleted = m?.status === 'completed';
                     const Icon = mod.icon;
                     return (
                       <button
                         key={mod.code}
                         onClick={() => setSelectedModule(mod.code)}
-                        className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all text-center ${
-                          isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/50'
+                        className={`flex flex-col items-center gap-1.5 group relative transition-all ${
+                          isSelected ? '' : 'opacity-80 hover:opacity-100'
                         }`}
                       >
-                        <div className="relative">
-                          <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: `${mod.color}15`, color: mod.color }}>
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          {d && <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full flex items-center justify-center"><CheckCircle2 className="h-2.5 w-2.5 text-white" /></div>}
+                        {isCompleted && (
+                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--success))] absolute -top-1 -right-1 z-10" />
+                        )}
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-all ${
+                          isSelected
+                            ? `${mod.color} ring-2 ring-primary ring-offset-2 ring-offset-background`
+                            : `${mod.color} group-hover:scale-105`
+                        }`}>
+                          <Icon className="h-5 w-5" />
                         </div>
-                        <span className="text-[9px] font-medium text-center leading-tight">{mod.title}</span>
+                        <span className={`text-[10px] leading-tight text-center max-w-[90px] ${
+                          isSelected ? 'font-semibold text-foreground' : 'text-muted-foreground'
+                        }`}>
+                          {mod.shortTitle}
+                        </span>
                       </button>
                     );
                   })}
