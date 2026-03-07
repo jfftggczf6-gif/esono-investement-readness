@@ -24,7 +24,7 @@ const MODULE_CONFIG = [
 ];
 
 const DELIV_MAP: Record<string, string> = {
-  bmc: 'bmc_analysis', sic: 'sic_analysis', inputs: 'inputs_data',
+  bmc: 'bmc_analysis', sic: 'sic_analysis',
   framework: 'framework_data', diagnostic: 'diagnostic_data',
   plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
 };

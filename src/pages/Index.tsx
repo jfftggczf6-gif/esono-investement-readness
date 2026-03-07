@@ -182,7 +182,7 @@ export default function Index() {
               title="Espace Entrepreneur"
               desc="Uploadez vos documents, complétez les 8 modules et générez votre dossier investisseur complet."
               features={[
-                'Business Model Canvas, SIC, Inputs financiers',
+                'Business Model Canvas, Social Impact Canvas',
                 'Génération IA : Framework, Diagnostic, OVO, BP, ODD',
                 '+10 livrables téléchargeables (Excel, HTML)',
               ]}

@@ -26,18 +26,6 @@ const MODULE_INFO: Record<string, { title: string; description: string; fields: 
       { id: 'social_value', label: 'Valeur sociale créée', placeholder: 'Quelle valeur sociale créez-vous ?' },
     ],
   },
-  inputs: {
-    title: 'Données Financières',
-    description: 'Saisissez vos données financières clés',
-    fields: [
-      { id: 'revenue', label: 'Chiffre d\'affaires annuel (FCFA)', placeholder: 'Ex: 50 000 000' },
-      { id: 'costs', label: 'Charges d\'exploitation (FCFA)', placeholder: 'Ex: 35 000 000' },
-      { id: 'investments', label: 'Investissements (FCFA)', placeholder: 'Ex: 15 000 000' },
-      { id: 'funding', label: 'Financement obtenu (FCFA)', placeholder: 'Ex: 10 000 000' },
-      { id: 'employees', label: 'Nombre d\'employés', placeholder: 'Ex: 12' },
-      { id: 'cash_flow', label: 'Trésorerie disponible (FCFA)', placeholder: 'Ex: 5 000 000' },
-    ],
-  },
   framework: {
     title: 'Framework Analyse',
     description: 'Analyse financière automatique générée par IA',

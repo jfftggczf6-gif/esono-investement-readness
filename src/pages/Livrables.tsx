@@ -15,7 +15,6 @@ import {
 const DELIVERABLES = [
   { type: 'bmc_analysis', label: 'Business Model Canvas', module: 'Business Model Canvas', icon: LayoutGrid, format: '.html' },
   { type: 'sic_analysis', label: 'Social Impact Canvas', module: 'Social Impact Canvas', icon: Globe, format: '.html' },
-  { type: 'inputs_data', label: 'Données Financières', module: 'Inputs Financiers', icon: FileSpreadsheet, format: '.html' },
   { type: 'framework_data', label: 'Plan Financier Intermédiaire', module: 'Plan Financier Intermédiaire', icon: BarChart3, format: '.html' },
   { type: 'diagnostic_data', label: 'Diagnostic Expert', module: 'Diagnostic', icon: Stethoscope, format: '.html' },
   { type: 'plan_ovo', label: 'Plan Financier Final', module: 'Plan Financier Final', icon: ListChecks, format: '.html' },
