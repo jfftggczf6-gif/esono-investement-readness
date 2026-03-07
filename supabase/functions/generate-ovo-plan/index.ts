@@ -808,6 +808,48 @@ JSON SCHEMA ATTENDU :
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// BUG #4 FIX : NORMALISATION DES GAMMES DE PRIX
+// ─────────────────────────────────────────────────────────────────────
+
+// deno-lint-ignore no-explicit-any
+function normalizeRangeData(json: Record<string, any>): void {
+  const normalize = (items: any[], label: string) => {
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+      if (!item?.active || !item.per_year) continue;
+      const rf = item.range_flags || [1, 0, 0];
+      // If only r3 or r2 is flagged (r1=0), shift everything to r1
+      if (rf[0] === 0 && (rf[2] === 1 || rf[1] === 1)) {
+        const srcRange = rf[2] === 1 ? 'r3' : 'r2';
+        console.log(`[normalize] ${label} "${item.name}": shifting ${srcRange} → r1`);
+        item.range_flags = [1, 0, 0];
+        for (const yr of item.per_year) {
+          if (srcRange === 'r3') {
+            yr.unit_price_r1 = yr.unit_price_r3 || yr.unit_price_r1 || 0;
+            yr.cogs_r1 = yr.cogs_r3 || yr.cogs_r1 || 0;
+            yr.mix_r1 = yr.mix_r3 || yr.mix_r1 || 1.0;
+            yr.mix_r1_ch1 = yr.mix_r3_ch1 || yr.mix_r1_ch1 || 0;
+            yr.mix_r1_ch2 = yr.mix_r3_ch2 || yr.mix_r1_ch2 || 1.0;
+            yr.unit_price_r3 = 0; yr.cogs_r3 = 0; yr.mix_r3 = 0;
+            yr.mix_r3_ch1 = 0; yr.mix_r3_ch2 = 0;
+          } else {
+            yr.unit_price_r1 = yr.unit_price_r2 || yr.unit_price_r1 || 0;
+            yr.cogs_r1 = yr.cogs_r2 || yr.cogs_r1 || 0;
+            yr.mix_r1 = yr.mix_r2 || yr.mix_r1 || 1.0;
+            yr.mix_r1_ch1 = yr.mix_r2_ch1 || yr.mix_r1_ch1 || 0;
+            yr.mix_r1_ch2 = yr.mix_r2_ch2 || yr.mix_r1_ch2 || 1.0;
+            yr.unit_price_r2 = 0; yr.cogs_r2 = 0; yr.mix_r2 = 0;
+            yr.mix_r2_ch1 = 0; yr.mix_r2_ch2 = 0;
+          }
+        }
+      }
+    }
+  };
+  normalize(json.products || [], "Product");
+  normalize(json.services || [], "Service");
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // ÉTAPE 3 : CONSTRUIRE LA LISTE DES CELLULES À ÉCRIRE
 // ─────────────────────────────────────────────────────────────────────
 
