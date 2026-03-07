@@ -40,7 +40,7 @@ const DELIVERABLE_CONFIG = [
   { type: 'framework_data', label: 'Plan Financier Intermédiaire', formats: ['html', 'xlsx'], icon: '📈' },
   { type: 'diagnostic_data', label: 'Diagnostic Expert', formats: ['html', 'json'], icon: '🩺' },
   { type: 'plan_ovo', label: 'Plan Financier Final', formats: ['html', 'xlsx'], icon: '📋' },
-  { type: 'business_plan', label: 'Business Plan', formats: ['html', 'json'], icon: '📄' },
+  { type: 'business_plan', label: 'Business Plan', formats: ['html', 'json', 'docx'], icon: '📄' },
   { type: 'odd_analysis', label: 'Due Diligence ODD', formats: ['html', 'json'], icon: '✅' },
 ];
 
