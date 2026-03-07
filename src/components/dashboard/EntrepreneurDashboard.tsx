@@ -291,8 +291,41 @@ export default function EntrepreneurDashboard() {
       setCreating(false);
     }
   };
+  const openEditDialog = () => {
+    if (!enterprise) return;
+    setEditName(enterprise.name || '');
+    setEditSector(enterprise.sector || '');
+    setEditCountry(enterprise.country || '');
+    setEditCity(enterprise.city || '');
+    setEditLegalForm(enterprise.legal_form || '');
+    setEditDescription(enterprise.description || '');
+    setShowEdit(true);
+  };
 
-  const getModuleData = (code: string) => {
+  const saveEnterprise = async () => {
+    if (!enterprise || !editName.trim()) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('enterprises').update({
+        name: editName.trim(),
+        sector: editSector.trim() || null,
+        country: editCountry.trim() || null,
+        city: editCity.trim() || null,
+        legal_form: editLegalForm.trim() || null,
+        description: editDescription.trim() || null,
+      }).eq('id', enterprise.id);
+      if (error) throw error;
+      toast.success('Entreprise mise à jour !');
+      setShowEdit(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
     const mod = modules.find((m: any) => m.module === code);
     return { status: (mod?.status || 'not_started') as 'not_started' | 'in_progress' | 'completed', progress: mod?.progress || 0 };
   };
