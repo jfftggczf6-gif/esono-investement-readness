@@ -13,11 +13,15 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
+import {
   Users, Building2, CheckCircle2, TrendingUp, ChevronRight,
   Plus, Download, Sparkles, Loader2, ArrowLeft, Eye, Lock,
   Share2, FileText, BarChart3, Globe, LayoutGrid, FileSpreadsheet,
   Stethoscope, ListChecks, Target, Upload, X, RefreshCw,
-  AlertCircle, FileCheck, UserPlus, Search, Filter
+  AlertCircle, FileCheck, UserPlus, Search, Filter, Trash2
 } from 'lucide-react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
