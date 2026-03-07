@@ -865,10 +865,13 @@ function buildCellWrites(json: Record<string, any>): CellWrite[] {
   }
 
   // Helper pour écrire 10 valeurs dans les colonnes O→X
+  // Col S = CURRENT YEAR = formule auto dans FinanceData (ex: Q+R, Q201+R201)
+  // Elle est calculée automatiquement par Excel → NE JAMAIS écrire S directement
   function wFinance(sheet: string, row: number, values: number[], skipCols: string[] = []) {
     const cols = ["O","P","Q","R","S","T","U","V","W","X"];
+    const skip = new Set(["S", ...skipCols]);
     cols.forEach((col, i) => {
-      if (!skipCols.includes(col)) {
+      if (!skip.has(col)) {
         w(sheet, row, col, values[i] ?? 0, "number");
       }
     });
