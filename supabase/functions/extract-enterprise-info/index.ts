@@ -90,7 +90,11 @@ Si une information n'est pas trouvable, mets null pour ce champ.`
     });
 
     if (!aiResponse.ok) {
-      console.error("AI error:", aiResponse.status, await aiResponse.text());
+      const errBody = await aiResponse.text();
+      console.error("AI error:", aiResponse.status, errBody);
+      if (aiResponse.status === 402) {
+        return errorResponse("Crédits IA insuffisants. Veuillez recharger vos crédits dans les paramètres du workspace.", 402);
+      }
       return errorResponse("Erreur d'extraction IA", 500);
     }
 
