@@ -63,6 +63,7 @@ export default function EntrepreneurDashboard() {
     throw new Error("Session expirée — redirection vers la connexion");
   };
   const navigate = useNavigate();
+  const [initialLoading, setInitialLoading] = useState(true);
   const [enterprise, setEnterprise] = useState<any>(null);
   const [modules, setModules] = useState<any[]>([]);
   const [deliverables, setDeliverables] = useState<any[]>([]);
@@ -112,6 +113,7 @@ export default function EntrepreneurDashboard() {
       setDeliverables(delivRes.data || []);
       setUploadedFiles((filesRes.data || []).map((f: any) => ({ name: f.name, size: f.metadata?.size || 0 })));
     }
+    setInitialLoading(false);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -291,6 +293,17 @@ export default function EntrepreneurDashboard() {
         toast.warning(`${errors.length} module(s) en erreur`);
       }
       await fetchData();
+
+      // Auto-trigger Plan OVO Excel generation if plan_ovo was generated
+      const hasOvo = deliverables.find(d => d.type === 'plan_ovo') || completed > 0;
+      if (hasOvo && !generatingOvoPlan) {
+        toast.info('Génération automatique du Plan Financier Excel...');
+        try {
+          await handleGenerateOvoPlan();
+        } catch (ovoErr: any) {
+          console.warn('[Pipeline] OVO Excel auto-generation failed:', ovoErr.message);
+        }
+      }
     } catch (err: any) {
       toast.error(err.message || 'Erreur de génération');
     } finally {
@@ -724,6 +737,13 @@ export default function EntrepreneurDashboard() {
   const deliverablesCount = deliverables.length;
 
   // No enterprise yet
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (!enterprise) {
     return (
       <div className="min-h-screen bg-background">
@@ -1186,7 +1206,22 @@ export default function EntrepreneurDashboard() {
                     {deliverables.find((d: any) => d.type === 'odd_excel')?.file_url ? (
                       <>
                         <button
-                          onClick={() => handleDownloadOvoFile(deliverables.find((d: any) => d.type === 'odd_excel')?.file_url)}
+                          onClick={async () => {
+                            const oddExcel = deliverables.find((d: any) => d.type === 'odd_excel');
+                            const fileName = (oddExcel?.data as any)?.file_name;
+                            if (fileName) {
+                              const { data: signedData, error: signedErr } = await supabase.storage
+                                .from('ovo-outputs')
+                                .createSignedUrl(fileName, 3600);
+                              if (!signedErr && signedData?.signedUrl) {
+                                handleDownloadOvoFile(signedData.signedUrl);
+                              } else {
+                                toast.error('Erreur lors de la création du lien de téléchargement');
+                              }
+                            } else {
+                              toast.error('Fichier ODD Excel introuvable');
+                            }
+                          }}
                           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
                         >
                           <Download className="h-3.5 w-3.5" /> ODD Excel (.xlsm)
