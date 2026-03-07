@@ -481,16 +481,24 @@ export default function EntrepreneurDashboard() {
         );
 
         if (!response.ok) {
+          // HTTP error (400/500) — show the real server error, do NOT fall back to polling
           const err = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
-          throw new Error(err.error || 'La génération a échoué');
+          const serverMsg = err.error || 'La génération a échoué';
+          console.error(`[OVO] Server error ${response.status}:`, serverMsg);
+          throw new Error(`Échec génération OVO Excel (${response.status}): ${serverMsg}`);
         }
 
         const result = await response.json();
         downloadUrl = result.download_url;
         fileName = result.file_name || fileName;
       } catch (fetchErr: any) {
-        // Network error / connection closed — fall back to polling
-        console.warn('[OVO] HTTP failed, falling back to polling:', fetchErr.message);
+        // Distinguish real network errors from HTTP errors we already formatted
+        const isHttpError = fetchErr.message?.startsWith('Échec génération OVO Excel');
+        if (isHttpError) {
+          throw fetchErr; // Re-throw HTTP errors directly — don't mask them
+        }
+        // True network error / connection closed — fall back to polling
+        console.warn('[OVO] Network error, falling back to polling:', fetchErr.message);
         toast.info('Connexion interrompue — vérification en cours (peut prendre 3-5 min)...');
         const polled = await pollForOvoCompletion(enterprise.id, requestId, startedAt);
         if (polled) {

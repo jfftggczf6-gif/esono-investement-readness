@@ -268,6 +268,8 @@ Deno.serve(async (req: Request) => {
             request_id: requestId,
             file_name: outputFileName,
             generated_at: new Date().toISOString(),
+            constraint_source: data.plan_ovo_data ? "prev_plan_sanitized" : "framework_fallback",
+            phase: "completed",
           },
         },
         { onConflict: "enterprise_id,type" }
@@ -472,6 +474,55 @@ SORTIE OBLIGATOIRE :
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// SANITIZE STALE PREV PLAN DATA
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Check if a year-series object has valid future projections (YEAR2..YEAR6).
+ * Returns false if 3+ future years are zero/missing → stale data.
+ */
+function isSeriesValid(series: Record<string, any> | undefined): boolean {
+  if (!series || typeof series !== 'object') return false;
+  const futureKeys = ['year2', 'year3', 'year4', 'year5', 'year6'];
+  const zeroCount = futureKeys.filter(k => !series[k] || Number(series[k]) === 0).length;
+  return zeroCount < 3; // valid if at least 3 out of 5 future years have non-zero values
+}
+
+/**
+ * Sanitize previous plan data: remove "NE PAS MODIFIER" constraint blocks
+ * when their values are stale (zeros in future years).
+ * Returns a cleaned copy of prevPlan with only trustworthy data.
+ */
+function sanitizePrevPlan(prevPlan: Record<string, any>): Record<string, any> {
+  const clean = { ...prevPlan };
+  
+  // Remove stale revenue/cogs/ebitda/cashflow series
+  for (const key of ['revenue', 'cogs', 'gross_profit', 'ebitda', 'net_profit', 'cashflow']) {
+    if (clean[key] && !isSeriesValid(clean[key])) {
+      console.warn(`[sanitize] Removing stale ${key} from prev_plan (future years are zeros)`);
+      delete clean[key];
+    }
+  }
+  
+  // Remove stale opex sub-series
+  if (clean.opex && typeof clean.opex === 'object') {
+    const opex = { ...clean.opex };
+    let allStale = true;
+    for (const [cat, series] of Object.entries(opex)) {
+      if (series && typeof series === 'object' && !isSeriesValid(series as Record<string, any>)) {
+        console.warn(`[sanitize] Removing stale opex.${cat} from prev_plan`);
+        delete opex[cat];
+      } else if (series && typeof series === 'object') {
+        allStale = false;
+      }
+    }
+    clean.opex = allStale ? undefined : opex;
+  }
+  
+  return clean;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // CONSTRUCTION DU PROMPT UTILISATEUR
 // ─────────────────────────────────────────────────────────────────────
 
@@ -486,7 +537,8 @@ function buildUserPrompt(data: EntrepreneurData): string {
 
   // ── Extract structured revenue data from framework/plan_ovo ──
   const fw = (data.framework_data || {}) as Record<string, any>;
-  const prevPlan = (data.plan_ovo_data || {}) as Record<string, any>;
+  const rawPrevPlan = (data.plan_ovo_data || {}) as Record<string, any>;
+  const prevPlan = sanitizePrevPlan(rawPrevPlan); // ← sanitize stale data
   const inp = (data.inputs_data || {}) as Record<string, any>;
   const cr = inp.compte_resultat || {};
   const bmc = (data.bmc_data || {}) as Record<string, any>;
