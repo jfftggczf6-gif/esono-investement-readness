@@ -210,7 +210,7 @@ export async function verifyAndGetContext(req: Request) {
   return { supabase, user, enterprise: ent, enterprise_id, documentContent, moduleMap, deliverableMap };
 }
 
-export async function callAI(systemPrompt: string, userPrompt: string) {
+export async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 16384) {
   const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
 
   const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -222,7 +222,7 @@ export async function callAI(systemPrompt: string, userPrompt: string) {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 12288,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [
         { role: "user", content: userPrompt },
