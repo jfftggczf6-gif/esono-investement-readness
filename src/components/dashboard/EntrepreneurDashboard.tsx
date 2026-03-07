@@ -463,7 +463,7 @@ export default function EntrepreneurDashboard() {
       } catch (fetchErr: any) {
         // Network error / connection closed — fall back to polling
         console.warn('[OVO] HTTP failed, falling back to polling:', fetchErr.message);
-        toast.info('Connexion interrompue, vérification du statut en cours...');
+        toast.info('Connexion interrompue — vérification en cours (peut prendre 3-5 min)...');
         const polled = await pollForOvoCompletion(enterprise.id, requestId, startedAt);
         if (polled) {
           downloadUrl = polled.url;
