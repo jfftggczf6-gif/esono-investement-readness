@@ -182,6 +182,17 @@ Deno.serve(async (req: Request) => {
       throw new Error("L'IA n'a généré aucun produit ni service. Veuillez vérifier que les données BMC/inputs contiennent des informations sur vos activités.");
     }
 
+    // Bug #4: Normalize range data (shift r3/r2 → r1 if only one range used)
+    normalizeRangeData(financialJson);
+
+    // Bug #7: Sort products/services by slot for consistent ordering
+    if (Array.isArray(financialJson.products)) {
+      financialJson.products.sort((a: any, b: any) => (a.slot || 0) - (b.slot || 0));
+    }
+    if (Array.isArray(financialJson.services)) {
+      financialJson.services.sort((a: any, b: any) => (a.slot || 0) - (b.slot || 0));
+    }
+
     // ── Étape 2 : Télécharger le template ─────────────────────────────
     console.log("[generate-ovo-plan] Downloading template...");
 
