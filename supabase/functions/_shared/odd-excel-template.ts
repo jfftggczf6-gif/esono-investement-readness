@@ -210,6 +210,10 @@ export async function fillOddExcelTemplate(
   const buffer = await fileData.arrayBuffer();
   const zip = await JSZip.loadAsync(buffer);
 
+  // Preserve VBA binary before any modifications
+  const vbaFile = zip.file("xl/vbaProject.bin");
+  const vbaBytes = vbaFile ? await vbaFile.async("uint8array") : null;
+
   const sharedStrings = await loadSharedStrings(zip);
   console.log(`[odd-excel] ${sharedStrings.length} shared strings chargées`);
 
@@ -271,6 +275,12 @@ export async function fillOddExcelTemplate(
     }
   } else {
     console.warn("[odd-excel] Feuille INDICATEURS non trouvée, ignorée");
+  }
+
+  // Re-inject VBA without compression to preserve macro integrity
+  if (vbaBytes) {
+    zip.file("xl/vbaProject.bin", vbaBytes, { compression: "STORE" });
+    console.log(`[odd-excel] VBA project preserved (${vbaBytes.byteLength} bytes, STORE)`);
   }
 
   console.log(`[odd-excel] ✅ Template rempli pour "${enterpriseName}"`);
