@@ -331,7 +331,7 @@ async function callClaudeAPI(data: EntrepreneurData): Promise<Record<string, unk
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 16384, // 16K suffisant pour le JSON financier
+          max_tokens: 24576, // 24K pour éviter la troncature sur des structures financières complexes
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
         }),
