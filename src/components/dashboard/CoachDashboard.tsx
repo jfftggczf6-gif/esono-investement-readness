@@ -529,6 +529,36 @@ export default function CoachDashboard() {
     toast.success('Rapport téléchargé');
   };
 
+  // ─── Delete / Detach Enterprise ────────────────────────────────────────────
+
+  const handleDeleteEnterprise = async (ent: any) => {
+    if (!user) return;
+    try {
+      const isCoachOwned = ent.user_id === user.id;
+
+      if (isCoachOwned) {
+        // Coach owns this enterprise — full delete
+        await supabase.from('coach_uploads').delete().eq('enterprise_id', ent.id);
+        await supabase.from('deliverables').delete().eq('enterprise_id', ent.id);
+        await supabase.from('enterprise_modules').delete().eq('enterprise_id', ent.id);
+        await supabase.from('enterprises').delete().eq('id', ent.id);
+        toast.success(`${ent.name} supprimé`);
+      } else {
+        // Entrepreneur owns this — just detach coach
+        await supabase.from('enterprises').update({ coach_id: null } as any).eq('id', ent.id);
+        toast.success(`${ent.name} détaché de votre liste`);
+      }
+
+      if (selectedEnt?.id === ent.id) {
+        setView('list');
+        setSelectedEnt(null);
+      }
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la suppression');
+    }
+  };
+
   // ─── Filtered Enterprises ─────────────────────────────────────────────────
 
   const filteredEnts = enterprises.filter(e => {
