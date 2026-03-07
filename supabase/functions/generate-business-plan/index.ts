@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable } from "../_shared/helpers.ts";
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, WidthType, BorderStyle, ShadingType, LevelFormat, PageBreak } from "npm:docx@8";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import JSZip from "npm:jszip@3";
 
 // ── SYSTEM PROMPT ──────────────────────────────────────────────────────
 const BP_SYSTEM_PROMPT = `Tu es un consultant senior en business plan avec 20+ ans d'expérience auprès de PME africaines. Tu rédiges des business plans professionnels pour OVO.
@@ -467,6 +468,34 @@ async function generateWordDoc(bp: any): Promise<Uint8Array> {
   return new Uint8Array(buffer);
 }
 
+// ── STRIP CUSTOM XML ──────────────────────────────────────────────────
+async function stripCustomXml(docxBuffer: Uint8Array): Promise<Uint8Array> {
+  const zip = await JSZip.loadAsync(docxBuffer);
+
+  // Remove all customXml entries
+  const toRemove = Object.keys(zip.files).filter(f => f.startsWith("customXml/"));
+  toRemove.forEach(f => zip.remove(f));
+
+  // Patch [Content_Types].xml — remove Override entries for customXml
+  const ctFile = zip.file("[Content_Types].xml");
+  if (ctFile) {
+    let ct = await ctFile.async("string");
+    ct = ct.replace(/<Override[^>]*PartName="\/customXml\/[^"]*"[^>]*\/>/g, "");
+    zip.file("[Content_Types].xml", ct);
+  }
+
+  // Patch word/_rels/document.xml.rels — remove Relationship entries for customXml
+  const relsFile = zip.file("word/_rels/document.xml.rels");
+  if (relsFile) {
+    let rels = await relsFile.async("string");
+    rels = rels.replace(/<Relationship[^>]*Target="[^"]*customXml[^"]*"[^>]*\/>/g, "");
+    zip.file("word/_rels/document.xml.rels", rels);
+  }
+
+  const cleaned = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+  return cleaned;
+}
+
 // ── MAIN HANDLER ──────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -498,8 +527,12 @@ serve(async (req) => {
     console.log("[BP] Merged, generating Word document...");
 
     // Generate Word document
-    const docxBytes = await generateWordDoc(bpJson);
-    console.log("[BP] Word document generated:", docxBytes.length, "bytes");
+    const rawDocxBytes = await generateWordDoc(bpJson);
+    console.log("[BP] Word document generated:", rawDocxBytes.length, "bytes");
+
+    // Strip Custom XML Parts to avoid Word warning
+    const docxBytes = await stripCustomXml(rawDocxBytes);
+    console.log("[BP] Custom XML stripped:", docxBytes.length, "bytes");
 
     // Upload to storage
     const supabaseAdmin = createClient(
