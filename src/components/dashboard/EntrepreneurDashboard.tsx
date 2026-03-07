@@ -275,8 +275,16 @@ export default function EntrepreneurDashboard() {
       if (!d?.data || typeof d.data !== 'object') continue;
       const meta = d.data as Record<string, any>;
       if (meta.request_id !== requestId && !(meta.generated_at && meta.generated_at > startedAt)) continue;
-      if (meta.status === 'completed' && d.file_url) {
-        return { url: d.file_url, fileName: meta.file_name || 'PlanFinancierOVO.xlsm' };
+      if (meta.status === 'completed' && meta.file_name) {
+        // Régénérer une URL signée fraîche (file_url stocké peut être expiré)
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('ovo-outputs')
+          .createSignedUrl(meta.file_name, 3600);
+        if (signedError || !signedData?.signedUrl) {
+          // Fallback sur file_url stocké si createSignedUrl échoue
+          return { url: d.file_url || '', fileName: meta.file_name };
+        }
+        return { url: signedData.signedUrl, fileName: meta.file_name };
       }
       if (meta.status === 'failed') {
         throw new Error(meta.error || 'La génération a échoué côté serveur');
