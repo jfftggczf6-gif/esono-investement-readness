@@ -709,19 +709,26 @@ export default function EntrepreneurDashboard() {
     }
   };
 
-  const handleDownloadBpWord = async (url: string) => {
+  const handleDownloadBpWord = async () => {
     try {
-      const token = await getValidAccessToken();
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const bpDeliv = deliverables.find((d: any) => d.type === 'business_plan');
+      const fileName = (bpDeliv?.data as any)?._meta?.file_name;
+      if (!fileName) throw new Error('Fichier non disponible');
+
+      const { data: signedData, error } = await supabase.storage
+        .from('bp-outputs')
+        .createSignedUrl(fileName, 300);
+
+      if (error || !signedData?.signedUrl) throw new Error('Erreur de téléchargement');
+
+      const response = await fetch(signedData.signedUrl);
       if (!response.ok) throw new Error('Erreur de téléchargement');
       const blob = await response.blob();
-      const bpDeliv = deliverables.find((d: any) => d.type === 'business_plan');
-      const fileName = (bpDeliv?.data as any)?._meta?.file_name || `${enterprise?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'entreprise'}_BusinessPlan.docx`;
+
+      const downloadName = fileName || `${enterprise?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'entreprise'}_BusinessPlan.docx`;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = fileName;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
