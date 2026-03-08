@@ -1173,7 +1173,7 @@ export default function EntrepreneurDashboard() {
                     ) : selectedDeliv?.data?._meta?.download_url ? (
                       <>
                         <button
-                          onClick={() => handleDownloadBpWord(selectedDeliv.data._meta.download_url)}
+                          onClick={() => handleDownloadBpWord()}
                           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
                         >
                           <Download className="h-3.5 w-3.5" /> Télécharger Word (.docx)
