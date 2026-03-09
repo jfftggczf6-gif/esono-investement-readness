@@ -705,9 +705,12 @@ serve(async (req) => {
 
     console.log("[BP] Generating Business Plan for:", ent.name);
 
+    // RAG: enrichir avec données bailleurs et benchmarks
+    const ragContext = await buildRAGContext(ctx.supabase, ent.country || "", ent.sector || "", ["bailleurs", "benchmarks", "secteurs", "reglementation"]);
+
     // PART 1: Sections 1-8
     console.log("[BP] AI Call 1/2: Sections 1-8...");
-    const part1 = await callAI(BP_SYSTEM_PROMPT, buildPromptPart1(ctx));
+    const part1 = await callAI(BP_SYSTEM_PROMPT, buildPromptPart1(ctx) + ragContext, 16384, OPUS_MODEL);
     console.log("[BP] Part 1 OK, keys:", Object.keys(part1).length);
 
     // Build summary of part1 for context in part2
@@ -715,7 +718,7 @@ serve(async (req) => {
 
     // PART 2: Sections 9-14
     console.log("[BP] AI Call 2/2: Sections 9-14...");
-    const part2 = await callAI(BP_SYSTEM_PROMPT, buildPromptPart2(ctx, part1Summary));
+    const part2 = await callAI(BP_SYSTEM_PROMPT, buildPromptPart2(ctx, part1Summary) + ragContext, 16384, OPUS_MODEL);
     console.log("[BP] Part 2 OK, keys:", Object.keys(part2).length);
 
     // Merge
