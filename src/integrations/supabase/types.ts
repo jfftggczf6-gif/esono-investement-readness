@@ -230,6 +230,48 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          category: string
+          content: string
+          country: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          sector: string | null
+          source: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          content: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          sector?: string | null
+          source?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          sector?: string | null
+          source?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
