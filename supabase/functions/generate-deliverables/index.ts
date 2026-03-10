@@ -155,9 +155,41 @@ serve(async (req) => {
       }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Calculate global score
-    const scores = results.filter(r => r.success && r.score).map(r => r.score!);
-    const globalScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    // Calculate global score: merge fresh results with existing DB scores for skipped steps
+    const scoresDetail: Record<string, number> = {};
+    
+    // 1. Fresh scores from this run
+    results.forEach(r => { if (r.success && r.score) scoresDetail[r.step] = r.score; });
+    
+    // 2. Fetch ALL existing deliverable scores from DB (covers skipped steps)
+    const { data: allDeliverables } = await supabase
+      .from("deliverables")
+      .select("type, score")
+      .eq("enterprise_id", enterprise_id)
+      .not("score", "is", null);
+    
+    // Map deliverable types to step names for merging
+    const delivTypeToStep: Record<string, string> = {
+      "bmc_analysis": "BMC",
+      "sic_analysis": "SIC",
+      "inputs_data": "Inputs",
+      "framework_data": "Framework",
+      "plan_ovo": "Plan OVO",
+      "business_plan": "Business Plan",
+      "odd_analysis": "ODD",
+      "diagnostic_data": "Diagnostic",
+    };
+    
+    // Fill in scores from DB for steps not already in scoresDetail
+    (allDeliverables || []).forEach((d: any) => {
+      const stepName = delivTypeToStep[d.type];
+      if (stepName && !scoresDetail[stepName] && d.score > 0) {
+        scoresDetail[stepName] = Number(d.score);
+      }
+    });
+    
+    const allScores = Object.values(scoresDetail);
+    const globalScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
 
     // Update score_ir on enterprise
     if (globalScore > 0) {
@@ -165,8 +197,6 @@ serve(async (req) => {
     }
 
     // Insert score history entry
-    const scoresDetail: Record<string, number> = {};
-    results.forEach(r => { if (r.success && r.score) scoresDetail[r.step] = r.score; });
     if (globalScore > 0) {
       await supabase.from("score_history").insert({
         enterprise_id,
