@@ -447,7 +447,7 @@ async function callClaudeAPI(data: EntrepreneurData, supabase?: any, enterpriseI
 import { getFiscalParamsForPrompt } from "../_shared/helpers.ts";
 
 function buildSystemPrompt(country: string): string {
-  const fp = getFiscalParams(country);
+  const fp = getFiscalParamsForPrompt(country);
   const isRegimeInfo = fp.seuil_pme !== 'N/A'
     ? `- IS régime simplifié (revenus ≤ ${fp.seuil_pme}) : ${fp.is_pme}% du CA\n- IS régime réel (revenus > ${fp.seuil_pme}) : ${fp.is_standard}% du bénéfice`
     : `- IS : ${fp.is_standard}% du bénéfice`;

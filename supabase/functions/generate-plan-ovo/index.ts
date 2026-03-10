@@ -105,7 +105,7 @@ function buildUserPrompt(name: string, sector: string, country: string, docs: st
 - Net Profit: ${JSON.stringify(existingPlanOvo.net_profit)}`;
   }
 
-  const fp = getFiscalParams(country);
+  const fp = getFiscalParamsForPrompt(country);
 
   return `
 Crée le plan financier OVO complet pour "${name}" (Secteur: ${sector}, Pays: ${fp.focus}).
