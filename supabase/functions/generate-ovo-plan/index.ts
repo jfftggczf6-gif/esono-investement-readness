@@ -232,7 +232,7 @@ Deno.serve(async (req: Request) => {
 
     // ── Étape 4 : Injecter les valeurs dans le ZIP ─────────────────────
     console.log("[generate-ovo-plan] Injecting values into Excel...");
-    const filledBuffer = await injectIntoXlsm(templateBuffer, cellWrites);
+    const filledBuffer = await injectIntoXlsm(templateBuffer, cellWrites, SHEET_FILES);
 
     // ── Étape 5 : Upload vers Supabase Storage ─────────────────────────
     const timestamp = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
