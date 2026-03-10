@@ -1,25 +1,14 @@
 
 
-# Plan : Ajouter la réinitialisation de mot de passe
+## Réponse
 
-Le problème "Invalid login credentials" vient de mots de passe oubliés ou de comptes créés avant l'auto-confirmation. La solution : ajouter un flux "Mot de passe oublié".
+Lovable offre deux options pour tester des modifications sans affecter le projet principal :
 
-## Fichiers à créer/modifier
+1. **Remix (clone)** : Créer une copie complète du projet. Allez dans **Settings → Remix this project**. Cela crée un nouveau projet identique où vous pouvez tester librement.
 
-### 1. Créer `src/pages/ForgotPassword.tsx`
-- Formulaire avec champ email
-- Appelle `supabase.auth.resetPasswordForEmail(email, { redirectTo: origin + '/reset-password' })`
-- Message de confirmation après envoi
+2. **Branches GitHub** (expérimental) : Si votre projet est connecté à GitHub, vous pouvez activer le switching de branches dans **Account Settings → Labs → GitHub Branch Switching**. Cela vous permet de travailler sur une branche séparée.
 
-### 2. Créer `src/pages/ResetPassword.tsx`
-- Vérifie le token `type=recovery` dans le hash URL
-- Formulaire nouveau mot de passe + confirmation
-- Appelle `supabase.auth.updateUser({ password })`
-- Redirige vers `/dashboard` après succès
+Je ne peux pas créer de remix ou de branche directement pour vous — ces actions se font depuis l'interface Lovable.
 
-### 3. Modifier `src/pages/Login.tsx`
-- Ajouter un lien "Mot de passe oublié ?" sous le champ mot de passe
-
-### 4. Modifier `src/App.tsx`
-- Ajouter les routes `/forgot-password` et `/reset-password` (publiques)
+**Recommandation** : Le remix est le plus simple et le plus fiable pour tester des modifications en isolation.
 
