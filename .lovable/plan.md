@@ -1,14 +1,14 @@
 
 
-## Réponse
+# Plan : Mettre à jour la clé API Anthropic
 
-Lovable offre deux options pour tester des modifications sans affecter le projet principal :
+## Problème
+Toutes les fonctions de génération échouent avec `401 - invalid x-api-key`. La clé `ANTHROPIC_API_KEY` stockée dans les secrets est invalide ou expirée.
 
-1. **Remix (clone)** : Créer une copie complète du projet. Allez dans **Settings → Remix this project**. Cela crée un nouveau projet identique où vous pouvez tester librement.
+## Action
+1. L'utilisateur doit générer une nouvelle clé sur console.anthropic.com
+2. Mettre à jour le secret `ANTHROPIC_API_KEY` via l'outil add_secret
+3. Relancer la génération
 
-2. **Branches GitHub** (expérimental) : Si votre projet est connecté à GitHub, vous pouvez activer le switching de branches dans **Account Settings → Labs → GitHub Branch Switching**. Cela vous permet de travailler sur une branche séparée.
-
-Je ne peux pas créer de remix ou de branche directement pour vous — ces actions se font depuis l'interface Lovable.
-
-**Recommandation** : Le remix est le plus simple et le plus fiable pour tester des modifications en isolation.
+Aucune modification de code n'est nécessaire — seul le secret doit être mis à jour.
 
