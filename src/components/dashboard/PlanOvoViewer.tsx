@@ -665,7 +665,7 @@ export default function PlanOvoViewer({ data }: { data: any }) {
                     <TableRow className="bg-muted/20">
                       <TableCell className="text-xs font-semibold">TRI</TableCell>
                       {(['optimiste', 'realiste', 'pessimiste'] as const).map(k => (
-                        <TableCell key={k} className="text-xs text-right font-semibold">{data.scenarios[k]?.tri != null ? pct(Number(data.scenarios[k].tri) * 100) : '—'}</TableCell></invoke>
+                        <TableCell key={k} className="text-xs text-right font-semibold">{data.scenarios[k]?.tri != null ? pct(Number(data.scenarios[k].tri) * 100) : '—'}</TableCell>
                       ))}
                     </TableRow>
                   </TableBody>
