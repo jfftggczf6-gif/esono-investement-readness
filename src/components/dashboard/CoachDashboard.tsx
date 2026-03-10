@@ -82,6 +82,7 @@ export default function CoachDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const [generatingMirror, setGeneratingMirror] = useState(false);
   const [generatingModuleCoach, setGeneratingModuleCoach] = useState<string | null>(null);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
