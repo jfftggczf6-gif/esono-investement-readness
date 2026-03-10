@@ -1944,13 +1944,23 @@ async function buildZip(zipResult: ZipReadResult, modifiedFiles: Set<string>): P
   const centralDir: Uint8Array[] = [];
   let offset = 0;
 
+  // VBA-critical files must use STORE (method 0) to prevent macro corruption
+  const VBA_PATTERNS = ['vbaProject', 'xl/vba', '.bin'];
+  const isVbaFile = (n: string) => VBA_PATTERNS.some(p => n.includes(p));
+
   for (const [name, uncompData] of Object.entries(entries)) {
     const nameBytes = new TextEncoder().encode(name);
     let compData: Uint8Array;
     let crcVal: number;
     let compMethod: number;
 
-    if (modifiedFiles.has(name)) {
+    if (isVbaFile(name)) {
+      // VBA binaries: STORE without compression to preserve macro integrity
+      compData = uncompData;
+      crcVal = crc32(uncompData);
+      compMethod = 0;
+      console.log(`[buildZip] VBA preserved STORE: ${name} (${uncompData.length} bytes)`);
+    } else if (modifiedFiles.has(name)) {
       // Modified file: recompress
       const cs = new CompressionStream("deflate-raw");
       const writer = cs.writable.getWriter();
