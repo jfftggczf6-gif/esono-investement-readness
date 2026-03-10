@@ -273,13 +273,13 @@ export async function fillOddExcelTemplate(
     console.warn("[odd-excel] Feuille INDICATEURS non trouvée, ignorée");
   }
 
-  // Re-inject ALL VBA binaries with STORE to preserve macro integrity
-  for (const entry of vbaEntries) {
-    zip.file(entry.path, entry.bytes, { compression: "STORE" });
-    console.log(`[odd-excel] VBA preserved: ${entry.path} (${entry.bytes.byteLength} bytes, STORE)`);
-  }
+  // Remove calcChain.xml to avoid inconsistencies — Excel will recalculate automatically
+  zip.remove("xl/calcChain.xml");
 
   console.log(`[odd-excel] ✅ Template rempli pour "${enterpriseName}"`);
-  // No global compression — let per-file STORE settings take effect for VBA
-  return await zip.generateAsync({ type: "uint8array" });
+  return await zip.generateAsync({
+    type: "uint8array",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
+  });
 }
