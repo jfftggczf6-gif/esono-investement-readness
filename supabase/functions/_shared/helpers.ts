@@ -320,6 +320,16 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
 }
 
 export async function saveDeliverable(supabase: any, enterprise_id: string, type: string, data: any, moduleCode: string, htmlContent?: string) {
+  // Get current version to increment
+  const { data: existing } = await supabase
+    .from("deliverables")
+    .select("version")
+    .eq("enterprise_id", enterprise_id)
+    .eq("type", type)
+    .maybeSingle();
+  
+  const newVersion = (existing?.version || 0) + 1;
+
   await supabase.from("deliverables").upsert({
     enterprise_id,
     type,
@@ -327,7 +337,7 @@ export async function saveDeliverable(supabase: any, enterprise_id: string, type
     score: data.score || data.score_global || null,
     html_content: htmlContent || null,
     ai_generated: true,
-    version: 1,
+    version: newVersion,
   }, { onConflict: "enterprise_id,type" });
 
   await supabase.from("enterprise_modules")

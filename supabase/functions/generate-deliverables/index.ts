@@ -159,6 +159,22 @@ serve(async (req) => {
     const scores = results.filter(r => r.success && r.score).map(r => r.score!);
     const globalScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
 
+    // Update score_ir on enterprise
+    if (globalScore > 0) {
+      await supabase.from("enterprises").update({ score_ir: globalScore }).eq("id", enterprise_id);
+    }
+
+    // Insert score history entry
+    const scoresDetail: Record<string, number> = {};
+    results.forEach(r => { if (r.success && r.score) scoresDetail[r.step] = r.score; });
+    if (globalScore > 0) {
+      await supabase.from("score_history").insert({
+        enterprise_id,
+        score: globalScore,
+        scores_detail: scoresDetail,
+      });
+    }
+
     return new Response(JSON.stringify({
       success: true,
       global_score: globalScore,
