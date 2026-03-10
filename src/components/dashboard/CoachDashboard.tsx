@@ -826,8 +826,8 @@ export default function CoachDashboard() {
                 {ent.score_ir}/100
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={() => handleDownloadReport(ent)}>
-              <Download className="h-4 w-4 mr-1" /> Rapport
+            <Button variant="outline" size="sm" onClick={() => handleDownloadReport(ent)} disabled={generatingReport === ent.id}>
+              {generatingReport === ent.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />} Rapport IA
             </Button>
           </div>
         </div>
