@@ -156,12 +156,20 @@ export default function PlanOvoViewer({ data }: { data: any }) {
     const discountRate = ai?.discount_rate || 0.12;
     const nYears = 5;
 
+    // AI returns decimals (0.15 = 15%), fallback calcIRR/calcCAGR also return decimals → multiply by 100 for display
+    const rawTri = ai?.tri ?? calcIRR(futureCf, totalInvestment);
+    const rawCagrRev = ai?.cagr_revenue ?? calcCAGR(revSeries[currentIdx], revSeries[7], nYears);
+    const rawCagrEbitda = ai?.cagr_ebitda ?? calcCAGR(ebitdaSeries[currentIdx], ebitdaSeries[7], nYears);
+    const rawRoi = ai?.roi != null
+      ? ai.roi * 100  // AI returns decimal
+      : (totalInvestment > 0 ? (npSeries.slice(3).reduce((a, b) => a + b, 0) / totalInvestment) * 100 : null);
+
     return {
       van: ai?.van ?? calcNPV(futureCf, discountRate, totalInvestment),
-      tri: ai?.tri ?? calcIRR(futureCf, totalInvestment),
-      cagr_revenue: ai?.cagr_revenue ?? calcCAGR(revSeries[currentIdx], revSeries[7], nYears),
-      cagr_ebitda: ai?.cagr_ebitda ?? calcCAGR(ebitdaSeries[currentIdx], ebitdaSeries[7], nYears),
-      roi: ai?.roi ?? (totalInvestment > 0 ? (npSeries.slice(3).reduce((a, b) => a + b, 0) / totalInvestment) * 100 : null),
+      tri: rawTri != null ? rawTri * 100 : null,
+      cagr_revenue: rawCagrRev != null ? rawCagrRev * 100 : null,
+      cagr_ebitda: rawCagrEbitda != null ? rawCagrEbitda * 100 : null,
+      roi: rawRoi,
       payback_years: ai?.payback_years ?? calcPayback(futureCf, totalInvestment),
       dscr: ai?.dscr ?? (annualDebtService > 0 ? ebitdaSeries[currentIdx] / annualDebtService : null),
       multiple_ebitda: ai?.multiple_ebitda ?? null,
