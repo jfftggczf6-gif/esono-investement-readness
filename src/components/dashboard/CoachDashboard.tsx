@@ -19,50 +19,21 @@ import {
 import {
   Users, Building2, CheckCircle2, TrendingUp, ChevronRight,
   Plus, Download, Sparkles, Loader2, ArrowLeft, Eye, Lock,
-  Share2, FileText, BarChart3, Globe, LayoutGrid, FileSpreadsheet,
-  Stethoscope, ListChecks, Target, Upload, X, RefreshCw,
-  AlertCircle, FileCheck, UserPlus, Search, Filter, Trash2
+  Share2, RefreshCw, AlertCircle, FileCheck, UserPlus, Search, Filter, Trash2
 } from 'lucide-react';
+import {
+  MODULE_CONFIG_COACH as MODULE_CONFIG, MODULE_CONFIG as MIRROR_MODULES, PIPELINE,
+  type Enterprise, type Deliverable, type EnterpriseModule, type CoachUpload,
+} from '@/lib/dashboard-config';
+import { getValidAccessToken } from '@/lib/getValidAccessToken';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const MODULE_CONFIG = [
-  { code: 'bmc',           title: 'Business Model Canvas',       icon: LayoutGrid,      color: '#059669' },
-  { code: 'sic',           title: 'Social Impact Canvas',        icon: Globe,           color: '#7c3aed' },
-  { code: 'inputs',        title: 'Données Financières',         icon: FileSpreadsheet, color: '#d97706' },
-  { code: 'framework',     title: 'Plan Financier Interm.',      icon: BarChart3,       color: '#2563eb' },
-  { code: 'diagnostic',    title: 'Diagnostic Expert',           icon: Stethoscope,     color: '#1e3a5f' },
-  { code: 'plan_ovo',      title: 'Plan Financier Final',        icon: ListChecks,      color: '#ea580c' },
-  { code: 'business_plan', title: 'Business Plan',               icon: FileText,        color: '#4338ca' },
-  { code: 'odd',           title: 'Due Diligence ODD',           icon: Target,          color: '#0891b2' },
-];
-
-const MIRROR_MODULES = [
-  { code: 'diagnostic', title: 'Diagnostic Expert Global', shortTitle: 'Diagnostic Expert Global', icon: Stethoscope, color: 'bg-orange-100 text-orange-600', step: 1 },
-  { code: 'bmc', title: 'Business Model Canvas', shortTitle: 'Business Model Canvas', icon: LayoutGrid, color: 'bg-emerald-100 text-emerald-600', step: 2 },
-  { code: 'sic', title: 'Social Impact Canvas', shortTitle: 'Social Impact Canvas', icon: Globe, color: 'bg-teal-100 text-teal-600', step: 3 },
-  { code: 'framework', title: 'Plan Financier Intermédiaire', shortTitle: 'Plan Financier Intermédiaire', icon: BarChart3, color: 'bg-purple-100 text-purple-600', step: 4 },
-  { code: 'plan_ovo', title: 'Plan Financier Final', shortTitle: 'Plan Financier Final', icon: ListChecks, color: 'bg-amber-100 text-amber-600', step: 5 },
-  { code: 'business_plan', title: 'Business Plan', shortTitle: 'Business Plan', icon: FileText, color: 'bg-indigo-100 text-indigo-600', step: 6 },
-  { code: 'odd', title: 'ODD', shortTitle: 'ODD', icon: Target, color: 'bg-red-100 text-red-600', step: 7 },
-];
 
 const DELIV_MAP: Record<string, string> = {
   bmc: 'bmc_analysis', sic: 'sic_analysis', inputs: 'inputs_data',
   framework: 'framework_data', diagnostic: 'diagnostic_data',
   plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
 };
-
-const PIPELINE = [
-  { name: 'BMC',           fn: 'generate-bmc',           type: 'bmc_analysis'    },
-  { name: 'SIC',           fn: 'generate-sic',           type: 'sic_analysis'    },
-  { name: 'Inputs',        fn: 'generate-inputs',        type: 'inputs_data'     },
-  { name: 'Framework',     fn: 'generate-framework',     type: 'framework_data'  },
-  { name: 'Diagnostic',    fn: 'generate-diagnostic',    type: 'diagnostic_data' },
-  { name: 'Plan OVO',      fn: 'generate-plan-ovo',      type: 'plan_ovo'        },
-  { name: 'Business Plan', fn: 'generate-business-plan', type: 'business_plan'   },
-  { name: 'ODD',           fn: 'generate-odd',           type: 'odd_analysis'    },
-];
 
 const SECTORS = [
   'Agriculture / Agroalimentaire', 'Tech / Digital', 'Commerce / Distribution',
@@ -98,25 +69,15 @@ type DetailTab = 'parcours' | 'mirror' | 'livrables';
 export default function CoachDashboard() {
   const { user, profile, session: authSession } = useAuth();
 
-  /** Robust access token retrieval: context → getSession → refreshSession → redirect */
-  const getValidAccessToken = async (): Promise<string> => {
-    if (authSession?.access_token) return authSession.access_token;
-    const { data: { session: s } } = await supabase.auth.getSession();
-    if (s?.access_token) return s.access_token;
-    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-    if (refreshed?.access_token) return refreshed.access_token;
-    throw new Error("Session expirée — veuillez vous reconnecter");
-  };
-
   const [view, setView] = useState<View>('list');
-  const [selectedEnt, setSelectedEnt] = useState<any>(null);
+  const [selectedEnt, setSelectedEnt] = useState<Enterprise | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('parcours');
   const [selectedModule, setSelectedModule] = useState('diagnostic');
 
-  const [enterprises, setEnterprises] = useState<any[]>([]);
-  const [modulesMap, setModulesMap] = useState<Record<string, any[]>>({});
-  const [deliverablesMap, setDeliverablesMap] = useState<Record<string, any[]>>({});
-  const [uploadsMap, setUploadsMap] = useState<Record<string, any[]>>({});
+  const [enterprises, setEnterprises] = useState<Enterprise[]>([]);
+  const [modulesMap, setModulesMap] = useState<Record<string, EnterpriseModule[]>>({});
+  const [deliverablesMap, setDeliverablesMap] = useState<Record<string, Deliverable[]>>({});
+  const [uploadsMap, setUploadsMap] = useState<Record<string, CoachUpload[]>>({});
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -158,21 +119,21 @@ export default function CoachDashboard() {
           supabase.from('coach_uploads').select('*').eq('coach_id', user.id).in('enterprise_id', ids),
         ]);
 
-        const modMap: Record<string, any[]> = {};
+        const modMap: Record<string, EnterpriseModule[]> = {};
         (modsRes.data || []).forEach(m => {
           if (!modMap[m.enterprise_id]) modMap[m.enterprise_id] = [];
           modMap[m.enterprise_id].push(m);
         });
         setModulesMap(modMap);
 
-        const delMap: Record<string, any[]> = {};
+        const delMap: Record<string, Deliverable[]> = {};
         (delivsRes.data || []).forEach(d => {
           if (!delMap[d.enterprise_id]) delMap[d.enterprise_id] = [];
           delMap[d.enterprise_id].push(d);
         });
         setDeliverablesMap(delMap);
 
-        const upMap: Record<string, any[]> = {};
+        const upMap: Record<string, CoachUpload[]> = {};
         (uploadsRes.data || []).forEach(u => {
           if (!upMap[u.enterprise_id]) upMap[u.enterprise_id] = [];
           upMap[u.enterprise_id].push(u);
@@ -189,8 +150,8 @@ export default function CoachDashboard() {
   // ─── KPIs ─────────────────────────────────────────────────────────────────
 
   const totalEntreprises = enterprises.length;
-  const allScores = enterprises.map((e: any) => e.score_ir || 0).filter((s: number) => s > 0);
-  const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a: number, b: number) => a + b, 0) / allScores.length) : 0;
+  const allScores = enterprises.map((e) => e.score_ir || 0).filter((s) => s > 0);
+  const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
   const allDelivs = Object.values(deliverablesMap).flat();
   const delivsThisWeek = allDelivs.filter(d => {
     const date = new Date(d.created_at || d.updated_at);
@@ -243,7 +204,7 @@ export default function CoachDashboard() {
           user_id: user.id,
           phase: 'identite',
           score_ir: 0,
-        } as any);
+        });
 
         if (error) throw error;
         toast.success(`${addForm.name} ajouté avec succès`);
@@ -274,7 +235,7 @@ export default function CoachDashboard() {
 
       if (category === 'bmc_sic') {
         const existingUploads = uploadsMap[enterpriseId] || [];
-        const toDelete = existingUploads.filter((u: any) => u.category === 'bmc' || u.category === 'sic');
+        const toDelete = existingUploads.filter((u) => u.category === 'bmc' || u.category === 'sic');
         for (const u of toDelete) {
           await supabase.from('coach_uploads').delete().eq('id', u.id);
           await supabase.storage.from('documents').remove([u.storage_path]);
@@ -285,7 +246,7 @@ export default function CoachDashboard() {
         ]);
       } else {
         const existingUploads = uploadsMap[enterpriseId] || [];
-        const existing = existingUploads.filter((u: any) => u.category === category);
+        const existing = existingUploads.filter((u) => u.category === category);
         for (const u of existing) {
           await supabase.from('coach_uploads').delete().eq('id', u.id);
           await supabase.storage.from('documents').remove([u.storage_path]);
@@ -332,12 +293,12 @@ export default function CoachDashboard() {
     let completed = 0;
     const errors: string[] = [];
     let token: string;
-    try { token = await getValidAccessToken(); } catch { toast.error('Non authentifié'); setGenerating(false); return; }
+    try { token = await getValidAccessToken(authSession); } catch { toast.error('Non authentifié'); setGenerating(false); return; }
 
     const stepsToRun = PIPELINE.filter(step => {
-      const hasBmc = entUploads.some((u: any) => u.category === 'bmc');
-      const hasSic = entUploads.some((u: any) => u.category === 'sic');
-      const hasInputs = entUploads.some((u: any) => u.category === 'inputs');
+      const hasBmc = entUploads.some((u) => u.category === 'bmc');
+      const hasSic = entUploads.some((u) => u.category === 'sic');
+      const hasInputs = entUploads.some((u) => u.category === 'inputs');
       if (step.type === 'bmc_analysis') return hasBmc;
       if (step.type === 'sic_analysis') return hasSic;
       if (step.type === 'inputs_data') return hasInputs;
@@ -365,9 +326,9 @@ export default function CoachDashboard() {
             completed++;
             await response.json();
             await supabase.from('deliverables')
-              .update({ generated_by: 'coach', visibility: 'private', coach_id: user.id } as any)
+              .update({ generated_by: 'coach', visibility: 'private', coach_id: user.id })
               .eq('enterprise_id', enterpriseId)
-              .eq('type', step.type as any);
+              .eq('type', step.type);
             // Refresh data so the user sees the deliverable immediately
             await fetchData();
           } else {
@@ -392,8 +353,8 @@ export default function CoachDashboard() {
         try {
           toast.info('Génération automatique du Plan Financier Excel...');
           await handleGenerateOvoPlanCoach(enterpriseId);
-        } catch (ovoErr: any) {
-          console.warn('[Coach Pipeline] OVO Excel auto-generation failed:', ovoErr.message);
+        } catch {
+          // OVO Excel generation is best-effort after the main pipeline
         }
       }
     } finally {
@@ -416,7 +377,7 @@ export default function CoachDashboard() {
 
     let completed = 0;
     let token: string;
-    try { token = await getValidAccessToken(); } catch { toast.error('Non authentifié'); setGeneratingMirror(false); return; }
+    try { token = await getValidAccessToken(authSession); } catch { toast.error('Non authentifié'); setGeneratingMirror(false); return; }
 
     try {
       for (let i = 0; i < PIPELINE.length; i++) {
@@ -434,9 +395,9 @@ export default function CoachDashboard() {
           if (response.ok) {
             completed++;
             await supabase.from('deliverables')
-              .update({ generated_by: 'coach_mirror', visibility: 'shared', coach_id: user.id, shared_at: new Date().toISOString() } as any)
+              .update({ generated_by: 'coach_mirror', visibility: 'shared', coach_id: user.id, shared_at: new Date().toISOString() })
               .eq('enterprise_id', enterpriseId)
-              .eq('type', step.type as any);
+              .eq('type', step.type);
           }
         } catch {}
       }
@@ -448,8 +409,8 @@ export default function CoachDashboard() {
         try {
           toast.info('Génération automatique du Plan Financier Excel...');
           await handleGenerateOvoPlanCoach(enterpriseId);
-        } catch (ovoErr: any) {
-          console.warn('[Mirror] OVO Excel auto-generation failed:', ovoErr.message);
+        } catch {
+          // OVO Excel generation is best-effort after mirror generation
         }
       }
     } finally {
@@ -464,7 +425,7 @@ export default function CoachDashboard() {
     setSharingId(deliverableId);
     try {
       await supabase.from('deliverables')
-        .update({ visibility: 'shared', shared_at: new Date().toISOString() } as any)
+        .update({ visibility: 'shared', shared_at: new Date().toISOString() })
         .eq('id', deliverableId);
       toast.success("Livrable partagé avec l'entrepreneur");
       await fetchData();
@@ -479,7 +440,7 @@ export default function CoachDashboard() {
     if (!confirm("Partager tous les livrables privés avec l'entrepreneur ?")) return;
     try {
       const now = new Date().toISOString();
-      const { error } = await (supabase.from('deliverables') as any)
+      const { error } = await supabase.from('deliverables')
         .update({ visibility: 'shared', shared_at: now })
         .eq('enterprise_id', enterpriseId)
         .eq('generated_by', 'coach')
@@ -496,7 +457,7 @@ export default function CoachDashboard() {
 
   const handleDownloadCoach = async (type: string, format: string, enterpriseId: string) => {
     try {
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession);
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-deliverable?type=${type}&enterprise_id=${enterpriseId}&format=${format}`;
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error('Erreur de téléchargement');
@@ -519,7 +480,7 @@ export default function CoachDashboard() {
     if (!user) return;
     setGeneratingModuleCoach(moduleCode);
     try {
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession);
       const fnMap: Record<string, string> = {
         bmc: 'generate-bmc', sic: 'generate-sic', inputs: 'generate-inputs',
         framework: 'generate-framework', diagnostic: 'generate-diagnostic',
@@ -539,9 +500,9 @@ export default function CoachDashboard() {
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Erreur'); }
       const result = await response.json();
       await supabase.from('deliverables')
-        .update({ generated_by: 'coach_mirror', visibility: 'shared', coach_id: user.id, shared_at: new Date().toISOString() } as any)
+        .update({ generated_by: 'coach_mirror', visibility: 'shared', coach_id: user.id, shared_at: new Date().toISOString() })
         .eq('enterprise_id', enterpriseId)
-        .eq('type', DELIV_MAP[moduleCode] as any);
+        .eq('type', DELIV_MAP[moduleCode]);
       toast.success(`${moduleCode.toUpperCase()} généré ! Score: ${result.score || '—'}/100`);
       setSelectedModule(moduleCode);
       await fetchData();
@@ -578,7 +539,7 @@ export default function CoachDashboard() {
         }
       }
       // Fallback: direct fetch with auth
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession);
       const response = await fetch(fileUrl, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error('Erreur de téléchargement');
       const blob = await response.blob();
@@ -595,10 +556,10 @@ export default function CoachDashboard() {
     }
   };
 
-  const handleDownloadOvoCoach = async (enterpriseId: string, entDelivs: any[]) => {
+  const handleDownloadOvoCoach = async (enterpriseId: string, entDelivs: Deliverable[]) => {
     try {
-      const ovoExcel = entDelivs.find((d: any) => d.type === 'plan_ovo_excel');
-      const fileName = (ovoExcel?.data as any)?.file_name;
+      const ovoExcel = entDelivs.find((d) => d.type === 'plan_ovo_excel');
+      const fileName = (ovoExcel?.data as Record<string, unknown> | null)?.file_name as string | undefined;
       if (!fileName) { toast.error('Fichier OVO Excel introuvable'); return; }
       const { data: signedData, error: signedErr } = await supabase.storage
         .from('ovo-outputs')
@@ -620,10 +581,10 @@ export default function CoachDashboard() {
     }
   };
 
-  const handleDownloadOddExcelCoach = async (entDelivs: any[]) => {
+  const handleDownloadOddExcelCoach = async (entDelivs: Deliverable[]) => {
     try {
-      const oddExcel = entDelivs.find((d: any) => d.type === 'odd_excel');
-      const fileName = (oddExcel?.data as any)?.file_name;
+      const oddExcel = entDelivs.find((d) => d.type === 'odd_excel');
+      const fileName = (oddExcel?.data as Record<string, unknown> | null)?.file_name as string | undefined;
       if (!fileName) { toast.error('Fichier ODD Excel introuvable'); return; }
       const { data: signedData, error: signedErr } = await supabase.storage
         .from('ovo-outputs')
@@ -648,16 +609,16 @@ export default function CoachDashboard() {
   // ─── Generate OVO Excel Plan (coach version) ────────────────────────────
   const handleGenerateOvoPlanCoach = async (enterpriseId: string) => {
     try {
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession);
       
       // Gather deliverable data for this enterprise
       const entDelivs = deliverablesMap[enterpriseId] || [];
-      const getDelivData = (type: string): Record<string, any> => {
-        const d = entDelivs.find((d: any) => d.type === type);
-        return (d?.data && typeof d.data === 'object') ? d.data as Record<string, any> : {};
+      const getDelivData = (type: string): Record<string, unknown> => {
+        const d = entDelivs.find((d) => d.type === type);
+        return (d?.data && typeof d.data === 'object') ? d.data as Record<string, unknown> : {};
       };
 
-      const ent = enterprises.find((e: any) => e.id === enterpriseId);
+      const ent = enterprises.find((e) => e.id === enterpriseId);
       const planOvoData = getDelivData('plan_ovo');
       const bmcData = getDelivData('bmc_analysis');
       const inputsData = getDelivData('inputs_data');
@@ -706,27 +667,26 @@ export default function CoachDashboard() {
       toast.success('Plan Financier Excel généré !');
       await fetchData();
       return result;
-    } catch (err: any) {
-      console.warn('[Coach] OVO Excel generation failed:', err.message);
+    } catch (err: unknown) {
       throw err;
     }
   };
 
-  const handleDownloadReport = (ent: any) => {
+  const handleDownloadReport = (ent: Enterprise) => {
     const delivs = deliverablesMap[ent.id] || [];
     const mods = modulesMap[ent.id] || [];
     const entAvgScore = delivs.length > 0
-      ? Math.round(delivs.reduce((s: number, d: any) => s + (d.score || 0), 0) / delivs.length)
+      ? Math.round(delivs.reduce((s, d) => s + (d.score || 0), 0) / delivs.length)
       : ent.score_ir || 0;
-    const completed = mods.filter((m: any) => m.status === 'completed').length;
+    const completed = mods.filter((m) => m.status === 'completed').length;
     const total = mods.length || 8;
 
     const scoreColor = entAvgScore >= 70 ? '#059669' : entAvgScore >= 40 ? '#d97706' : '#dc2626';
     const date = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
     const moduleRows = MODULE_CONFIG.map(mod => {
-      const m = mods.find((x: any) => x.module === mod.code);
-      const d = delivs.find((x: any) => x.type === DELIV_MAP[mod.code]);
+      const m = mods.find((x) => x.module === mod.code);
+      const d = delivs.find((x) => x.type === DELIV_MAP[mod.code]);
       const status = m?.status || 'not_started';
       const score = d?.score || 0;
       const statusLabel = status === 'completed' ? '✅ Terminé' : status === 'in_progress' ? '🔄 En cours' : '⏳ À démarrer';
@@ -794,7 +754,7 @@ export default function CoachDashboard() {
 
   // ─── Delete / Detach Enterprise ────────────────────────────────────────────
 
-  const handleDeleteEnterprise = async (ent: any) => {
+  const handleDeleteEnterprise = async (ent: Enterprise) => {
     if (!user) return;
     try {
       const isCoachOwned = ent.user_id === user.id;
@@ -808,7 +768,7 @@ export default function CoachDashboard() {
         toast.success(`${ent.name} supprimé`);
       } else {
         // Entrepreneur owns this — just detach coach
-        await supabase.from('enterprises').update({ coach_id: null } as any).eq('id', ent.id);
+        await supabase.from('enterprises').update({ coach_id: null }).eq('id', ent.id);
         toast.success(`${ent.name} détaché de votre liste`);
       }
 
@@ -841,20 +801,20 @@ export default function CoachDashboard() {
     const entMods = modulesMap[ent.id] || [];
 
     const uploadsByCategory = {
-      bmc: entUploads.filter((u: any) => u.category === 'bmc'),
-      sic: entUploads.filter((u: any) => u.category === 'sic'),
-      inputs: entUploads.filter((u: any) => u.category === 'inputs'),
-      supplementary: entUploads.filter((u: any) => u.category === 'supplementary'),
+      bmc: entUploads.filter((u) => u.category === 'bmc'),
+      sic: entUploads.filter((u) => u.category === 'sic'),
+      inputs: entUploads.filter((u) => u.category === 'inputs'),
+      supplementary: entUploads.filter((u) => u.category === 'supplementary'),
     };
     const hasBmcSic = uploadsByCategory.bmc.length > 0 && uploadsByCategory.sic.length > 0;
 
-    const coachDelivs = entDelivs.filter((d: any) => d.generated_by === 'coach');
-    const privateDelivs = coachDelivs.filter((d: any) => d.visibility === 'private');
+    const coachDelivs = entDelivs.filter((d) => d.generated_by === 'coach');
+    const privateDelivs = coachDelivs.filter((d) => d.visibility === 'private');
 
     const delivType = DELIV_MAP[selectedModule];
-    const selectedDeliv = delivType ? entDelivs.find((d: any) => d.type === delivType) : null;
+    const selectedDeliv = delivType ? entDelivs.find((d) => d.type === delivType) : null;
 
-    const renderDeliverableContent = (deliv: any) => {
+    const renderDeliverableContent = (deliv: Deliverable) => {
       if (!deliv?.data || typeof deliv.data !== 'object') return null;
       if (selectedModule === 'bmc') return <BmcViewer data={deliv.data} />;
       if (selectedModule === 'sic') return <SicViewer data={deliv.data} />;

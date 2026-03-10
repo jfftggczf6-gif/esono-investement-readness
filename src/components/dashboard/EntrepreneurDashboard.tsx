@@ -12,8 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
-  LayoutGrid, Globe, FileSpreadsheet, BarChart3,
-  Stethoscope, ListChecks, FileText, Target,
   Plus, Building2, Upload, Sparkles, Download,
   LogOut, User, Clock, CheckCircle2, Loader2, X, FileUp,
   BookOpen, Lock, FolderPlus, Pencil, Trash2, TrendingUp
@@ -22,55 +20,22 @@ import BmcViewer from './BmcViewer';
 import SicViewer from './SicViewer';
 import DeliverableViewer from './DeliverableViewer';
 import BusinessPlanPreview from './BusinessPlanPreview';
-
-const MODULE_CONFIG = [
-  { code: 'diagnostic' as const, title: 'Diagnostic Expert Global', shortTitle: 'Diagnostic Expert Global', icon: Stethoscope, color: 'bg-orange-100 text-orange-600', step: 1 },
-  { code: 'bmc' as const, title: 'Business Model Canvas', shortTitle: 'Business Model Canvas', icon: LayoutGrid, color: 'bg-emerald-100 text-emerald-600', step: 2 },
-  { code: 'sic' as const, title: 'Social Impact Canvas', shortTitle: 'Social Impact Canvas', icon: Globe, color: 'bg-teal-100 text-teal-600', step: 3 },
-  { code: 'framework' as const, title: 'Plan Financier Intermédiaire', shortTitle: 'Plan Financier Intermédiaire', icon: BarChart3, color: 'bg-purple-100 text-purple-600', step: 4 },
-  { code: 'plan_ovo' as const, title: 'Plan Financier Final', shortTitle: 'Plan Financier Final', icon: ListChecks, color: 'bg-amber-100 text-amber-600', step: 5 },
-  { code: 'business_plan' as const, title: 'Business Plan', shortTitle: 'Business Plan', icon: FileText, color: 'bg-indigo-100 text-indigo-600', step: 6 },
-  { code: 'odd' as const, title: 'ODD', shortTitle: 'ODD', icon: Target, color: 'bg-red-100 text-red-600', step: 7 },
-];
-
-const DELIVERABLE_CONFIG = [
-  { type: 'bmc_analysis', label: 'Business Model Canvas', formats: ['html', 'json'], icon: '📊' },
-  { type: 'sic_analysis', label: 'Social Impact Canvas', formats: ['html', 'json'], icon: '🌍' },
-  { type: 'framework_data', label: 'Plan Financier Intermédiaire', formats: ['html', 'xlsx'], icon: '📈' },
-  { type: 'diagnostic_data', label: 'Diagnostic Expert', formats: ['html', 'json'], icon: '🩺' },
-  { type: 'plan_ovo', label: 'Plan Financier Final', formats: ['html', 'xlsx'], icon: '📋' },
-  { type: 'business_plan', label: 'Business Plan', formats: ['html', 'json', 'docx'], icon: '📄' },
-  { type: 'odd_analysis', label: 'ODD (17 Objectifs de Développement Durable)', formats: ['html', 'json', 'xlsx'], icon: '🌍' },
-];
+import {
+  MODULE_CONFIG, DELIVERABLE_CONFIG, PIPELINE, MODULE_FN_MAP,
+  type Enterprise, type Deliverable, type EnterpriseModule, type UploadedFile,
+} from '@/lib/dashboard-config';
+import { getValidAccessToken } from '@/lib/getValidAccessToken';
 
 export default function EntrepreneurDashboard() {
   const { user, profile, session: authSession, signOut } = useAuth();
-
-  /** Robust access token retrieval: context → getSession → refreshSession → redirect */
-  const getValidAccessToken = async (): Promise<string> => {
-    // 1. Try auth context session first (most reliable in-memory source)
-    if (authSession?.access_token) return authSession.access_token;
-
-    // 2. Try Supabase getSession
-    const { data: { session: s } } = await supabase.auth.getSession();
-    if (s?.access_token) return s.access_token;
-
-    // 3. Force refresh
-    const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-    if (refreshed?.access_token) return refreshed.access_token;
-
-    // 4. All failed — redirect to login
-    navigate('/login');
-    throw new Error("Session expirée — redirection vers la connexion");
-  };
   const navigate = useNavigate();
   const [initialLoading, setInitialLoading] = useState(true);
-  const [enterprise, setEnterprise] = useState<any>(null);
-  const [modules, setModules] = useState<any[]>([]);
-  const [deliverables, setDeliverables] = useState<any[]>([]);
-  const [scoreHistory, setScoreHistory] = useState<any[]>([]);
+  const [enterprise, setEnterprise] = useState<Enterprise | null>(null);
+  const [modules, setModules] = useState<EnterpriseModule[]>([]);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [scoreHistory, setScoreHistory] = useState<Record<string, unknown>[]>([]);
   const [showScoreChart, setShowScoreChart] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSector, setNewSector] = useState('');
@@ -116,7 +81,7 @@ export default function EntrepreneurDashboard() {
       setModules(modsRes.data || []);
       setDeliverables(delivRes.data || []);
       setScoreHistory(histRes.data || []);
-      setUploadedFiles((filesRes.data || []).map((f: any) => ({ name: f.name, size: f.metadata?.size || 0 })));
+      setUploadedFiles((filesRes.data || []).map((f) => ({ name: f.name, size: (f.metadata as { size?: number } | null)?.size || 0 })));
     }
     setInitialLoading(false);
   }, [user]);
@@ -128,7 +93,7 @@ export default function EntrepreneurDashboard() {
     if (!user) return;
     const ensureTemplates = async () => {
       try {
-        const token = await getValidAccessToken();
+        const token = await getValidAccessToken(authSession, navigate);
         await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-template`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -143,15 +108,14 @@ export default function EntrepreneurDashboard() {
   // Auto-resume polling if OVO generation is stuck in "processing" on page load
   useEffect(() => {
     if (!enterprise || generatingOvoPlan) return;
-    const ovoDeliv = deliverables.find((d: any) => d.type === 'plan_ovo_excel');
-    const meta = ovoDeliv?.data as Record<string, any> | undefined;
+    const ovoDeliv = deliverables.find((d) => d.type === 'plan_ovo_excel');
+    const meta = ovoDeliv?.data as Record<string, unknown> | undefined;
     if (meta?.status === 'processing' && meta?.request_id && meta?.started_at) {
-      const age = Date.now() - new Date(meta.started_at).getTime();
+      const age = Date.now() - new Date(meta.started_at as string).getTime();
       if (age < 10 * 60 * 1000) { // less than 10 min old
-        console.log('[OVO] Resuming polling for in-progress generation:', meta.request_id);
         setGeneratingOvoPlan(true);
         toast.info('Génération OVO en cours, reprise du suivi...');
-        pollForOvoCompletion(enterprise.id, meta.request_id, meta.started_at)
+        pollForOvoCompletion(enterprise.id, meta.request_id as string, meta.started_at as string)
           .then((polled) => {
             if (polled) {
               setOvoDownloadUrl(polled.url);
@@ -171,7 +135,7 @@ export default function EntrepreneurDashboard() {
   const extractEnterpriseInfo = async (enterpriseId: string) => {
     try {
       setExtracting(true);
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession, navigate);
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-enterprise-info`,
         {
@@ -192,8 +156,8 @@ export default function EntrepreneurDashboard() {
           setShowExtractDialog(true);
         }
       }
-    } catch (e) {
-      console.error('Extraction error:', e);
+    } catch {
+      // Extraction is best-effort and silent
     } finally {
       setExtracting(false);
     }
@@ -203,7 +167,7 @@ export default function EntrepreneurDashboard() {
     if (!enterprise || !extractedInfo) return;
     setSaving(true);
     try {
-      const updates: any = {};
+      const updates: Partial<Enterprise> = {};
       if (extractedInfo.name) updates.name = extractedInfo.name;
       if (extractedInfo.country) updates.country = extractedInfo.country;
       if (extractedInfo.sector) updates.sector = extractedInfo.sector;
@@ -262,17 +226,6 @@ export default function EntrepreneurDashboard() {
 
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; name: string } | null>(null);
 
-  const PIPELINE = [
-    { name: "BMC", fn: "generate-bmc", type: "bmc_analysis" },
-    { name: "SIC", fn: "generate-sic", type: "sic_analysis" },
-    { name: "Inputs", fn: "generate-inputs", type: "inputs_data" },
-    { name: "Framework", fn: "generate-framework", type: "framework_data" },
-    { name: "Diagnostic", fn: "generate-diagnostic", type: "diagnostic_data" },
-    { name: "Plan OVO", fn: "generate-plan-ovo", type: "plan_ovo" },
-    { name: "Business Plan", fn: "generate-business-plan", type: "business_plan" },
-    { name: "ODD", fn: "generate-odd", type: "odd_analysis" },
-  ];
-
   const handleGenerate = async (force = false) => {
     if (!enterprise) return;
     setGenerating(true);
@@ -281,7 +234,7 @@ export default function EntrepreneurDashboard() {
     const errors: string[] = [];
 
     try {
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession, navigate);
 
       for (let i = 0; i < PIPELINE.length; i++) {
         const step = PIPELINE[i];
@@ -350,8 +303,8 @@ export default function EntrepreneurDashboard() {
         toast.info('Génération automatique du Plan Financier Excel...');
         try {
           await handleGenerateOvoPlan();
-        } catch (ovoErr: any) {
-          console.warn('[Pipeline] OVO Excel auto-generation failed:', ovoErr.message);
+        } catch {
+          // OVO Excel generation is best-effort after the main pipeline
         }
       }
     } catch (err: any) {
@@ -366,13 +319,8 @@ export default function EntrepreneurDashboard() {
     if (!enterprise) return;
     setGeneratingModule(moduleCode);
     try {
-      const token = await getValidAccessToken();
-      const fnMap: Record<string, string> = {
-        bmc: 'generate-bmc', sic: 'generate-sic', inputs: 'generate-inputs',
-        framework: 'generate-framework', diagnostic: 'generate-diagnostic',
-        plan_ovo: 'generate-plan-ovo', business_plan: 'generate-business-plan', odd: 'generate-odd',
-      };
-      const functionName = fnMap[moduleCode] || `generate-${moduleCode}`;
+      const token = await getValidAccessToken(authSession, navigate);
+      const functionName = MODULE_FN_MAP[moduleCode] || `generate-${moduleCode}`;
       
       // Longer timeout for business_plan (split AI calls)
       const timeoutMs = moduleCode === 'business_plan' ? 180000 : 120000;
@@ -478,10 +426,10 @@ export default function EntrepreneurDashboard() {
     return matches.sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
   };
 
-  const completedCount = modules.filter((m: any) => m.status === 'completed').length;
-  const scoredDeliverables = deliverables.filter((d: any) => d.score != null);
+  const completedCount = modules.filter((m) => m.status === 'completed').length;
+  const scoredDeliverables = deliverables.filter((d) => d.score != null);
   const globalScore = scoredDeliverables.length > 0
-    ? Math.round(scoredDeliverables.reduce((sum: number, d: any) => sum + (d.score || 0), 0) / scoredDeliverables.length)
+    ? Math.round(scoredDeliverables.reduce((sum, d) => sum + (d.score || 0), 0) / scoredDeliverables.length)
     : 0;
 
   const maturityLabel = globalScore >= 80 ? 'Excellent' : globalScore >= 60 ? 'Très bien' : globalScore >= 40 ? 'Moyen' : globalScore > 0 ? 'À améliorer' : '—';
@@ -497,26 +445,26 @@ export default function EntrepreneurDashboard() {
         .from('deliverables')
         .select('file_url, data')
         .eq('enterprise_id', enterpriseId)
-        .eq('type', 'plan_ovo_excel' as any)
+        .eq('type', 'plan_ovo_excel')
         .maybeSingle();
       if (!d?.data || typeof d.data !== 'object') continue;
-      const meta = d.data as Record<string, any>;
-      if (meta.request_id !== requestId && !(meta.generated_at && meta.generated_at > startedAt)) continue;
+      const meta = d.data as Record<string, unknown>;
+      if (meta.request_id !== requestId && !(meta.generated_at && (meta.generated_at as string) > startedAt)) continue;
       if (meta.status === 'completed' && meta.file_name) {
         const { data: signedData, error: signedError } = await supabase.storage
           .from('ovo-outputs')
-          .createSignedUrl(meta.file_name, 3600);
+          .createSignedUrl(meta.file_name as string, 3600);
         if (signedError || !signedData?.signedUrl) {
-          return { url: d.file_url || '', fileName: meta.file_name };
+          return { url: d.file_url || '', fileName: meta.file_name as string };
         }
-        return { url: signedData.signedUrl, fileName: meta.file_name };
+        return { url: signedData.signedUrl, fileName: meta.file_name as string };
       }
       if (meta.status === 'failed') {
-        throw new Error(meta.error || 'La génération a échoué côté serveur');
+        throw new Error((meta.error as string | undefined) || 'La génération a échoué côté serveur');
       }
       // Detect stale processing (started_at too old)
       if (meta.status === 'processing' && meta.started_at) {
-        const age = Date.now() - new Date(meta.started_at).getTime();
+        const age = Date.now() - new Date(meta.started_at as string).getTime();
         if (age > STALE_THRESHOLD_MS) {
           throw new Error('La génération semble bloquée (aucune mise à jour depuis 10 min). Veuillez réessayer.');
         }
@@ -532,12 +480,12 @@ export default function EntrepreneurDashboard() {
     const requestId = crypto.randomUUID();
     const startedAt = new Date().toISOString();
     try {
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession, navigate);
 
       // Gather ALL existing deliverable data
-      const getDelivData = (type: string): Record<string, any> => {
-        const d = deliverables.find((d: any) => d.type === type);
-        return (d?.data && typeof d.data === 'object') ? d.data as Record<string, any> : {};
+      const getDelivData = (type: string): Record<string, unknown> => {
+        const d = deliverables.find((d) => d.type === type);
+        return (d?.data && typeof d.data === 'object') ? d.data as Record<string, unknown> : {};
       };
 
       const bmcData = getDelivData('bmc_analysis');
@@ -550,15 +498,23 @@ export default function EntrepreneurDashboard() {
       // ── Extract products/services via priority cascade ──
       const extractItems = (type: 'products' | 'services'): Array<{ name: string; description: string; price?: number; deduit_du_bmc?: boolean }> => {
         // 1. Previous plan_ovo generation
-        if (Array.isArray(planOvoData?.[type]) && planOvoData[type].length > 0) {
-          return planOvoData[type].map((p: any) => ({ name: p.name || p.nom || '', description: p.description || '', price: p.price || p.prix || undefined }));
+        const planOvoArr = planOvoData?.[type] as unknown[];
+        if (Array.isArray(planOvoArr) && planOvoArr.length > 0) {
+          return planOvoArr.map((p) => {
+            const item = p as Record<string, unknown>;
+            return { name: (item.name || item.nom || '') as string, description: (item.description || '') as string, price: (item.price || item.prix || undefined) as number | undefined };
+          });
         }
 
         // 2. Explicit products/services from BMC or inputs
         for (const src of [bmcData, inputsData]) {
-          const arr = src?.[type] || src?.[type === 'products' ? 'produits' : 'services'];
+          const arr = (src?.[type] || src?.[type === 'products' ? 'produits' : 'services']) as unknown[] | undefined;
           if (Array.isArray(arr) && arr.length > 0) {
-            return arr.map((p: any) => typeof p === 'string' ? { name: p, description: '' } : { name: p.name || p.nom || p.label || '', description: p.description || '', price: p.price || p.prix || undefined });
+            return arr.map((p) => {
+              if (typeof p === 'string') return { name: p, description: '' };
+              const item = p as Record<string, unknown>;
+              return { name: (item.name || item.nom || item.label || '') as string, description: (item.description || '') as string, price: (item.price || item.prix || undefined) as number | undefined };
+            });
           }
         }
 
@@ -571,13 +527,13 @@ export default function EntrepreneurDashboard() {
           if (fr.produit_principal) items.push({ name: fr.produit_principal, description: 'Produit principal (BMC)', deduit_du_bmc: true });
           if (fr.sources_revenus) {
             const sources = Array.isArray(fr.sources_revenus) ? fr.sources_revenus : [fr.sources_revenus];
-            sources.forEach((s: any) => items.push({ name: typeof s === 'string' ? s : s.name || s.label || JSON.stringify(s), description: 'Source de revenus (BMC)', deduit_du_bmc: true }));
+            sources.forEach((s) => { const item = s as Record<string, unknown>; items.push({ name: typeof s === 'string' ? s : (item.name || item.label || JSON.stringify(s)) as string, description: 'Source de revenus (BMC)', deduit_du_bmc: true }); });
           }
         }
         if (canvas.proposition_valeur) {
           const pv = canvas.proposition_valeur;
           if (pv.produits && Array.isArray(pv.produits)) {
-            pv.produits.forEach((p: any) => items.push({ name: typeof p === 'string' ? p : p.name || p.label || '', description: pv.enonce || 'Proposition de valeur (BMC)', deduit_du_bmc: true }));
+            pv.produits.forEach((p: unknown) => { const item = p as Record<string, unknown>; items.push({ name: typeof p === 'string' ? p : (item.name || item.label || '') as string, description: (pv.enonce as string | undefined) || 'Proposition de valeur (BMC)', deduit_du_bmc: true }); });
           }
           if (items.length === 0 && pv.enonce) {
             items.push({ name: pv.enonce.substring(0, 80), description: 'Proposition de valeur (BMC)', deduit_du_bmc: true });
@@ -587,14 +543,16 @@ export default function EntrepreneurDashboard() {
 
         // 4. Fallback: structure_couts, partenaires_cles
         if (canvas.structure_couts?.postes && Array.isArray(canvas.structure_couts.postes)) {
-          canvas.structure_couts.postes.forEach((p: any) => {
-            const name = typeof p === 'string' ? p : p.libelle || p.label || p.name || '';
+          canvas.structure_couts.postes.forEach((p: unknown) => {
+            const item = p as Record<string, unknown>;
+            const name = typeof p === 'string' ? p : (item.libelle || item.label || item.name || '') as string;
             if (name) items.push({ name, description: 'Déduit de la structure des coûts (BMC)', deduit_du_bmc: true });
           });
         }
         if (canvas.partenaires_cles?.items && Array.isArray(canvas.partenaires_cles.items)) {
-          canvas.partenaires_cles.items.forEach((p: any) => {
-            const name = typeof p === 'string' ? p : p.name || p.label || '';
+          canvas.partenaires_cles.items.forEach((p: unknown) => {
+            const item = p as Record<string, unknown>;
+            const name = typeof p === 'string' ? p : (item.name || item.label || '') as string;
             if (name) items.push({ name, description: 'Déduit des partenaires clés (BMC)', deduit_du_bmc: true });
           });
         }
@@ -602,11 +560,14 @@ export default function EntrepreneurDashboard() {
 
         // 5. Last resort: activites_cles → treat as products/services
         if (canvas.activites_cles?.items && Array.isArray(canvas.activites_cles.items)) {
-          return canvas.activites_cles.items.map((a: any) => ({
-            name: typeof a === 'string' ? a : a.name || a.label || '',
-            description: 'Activité clé transformée en produit/service (BMC)',
-            deduit_du_bmc: true,
-          })).filter((i: any) => i.name);
+          return canvas.activites_cles.items.map((a: unknown) => {
+            const item = a as Record<string, unknown>;
+            return {
+              name: typeof a === 'string' ? a : (item.name || item.label || '') as string,
+              description: 'Activité clé transformée en produit/service (BMC)',
+              deduit_du_bmc: true,
+            };
+          }).filter((i) => i.name);
         }
 
         return [];
@@ -616,15 +577,18 @@ export default function EntrepreneurDashboard() {
       const services = extractItems('services');
 
       // Enrich products with CA/marge from framework analyse_marge
-      const margeActivites = (frameworkData as any)?.analyse_marge?.activites || [];
+      const margeActivites = ((frameworkData as Record<string, unknown>)?.analyse_marge as Record<string, unknown[]> | undefined)?.activites || [];
       if (margeActivites.length > 0) {
         products = products.map((p) => {
-          const match = margeActivites.find((a: any) =>
-            (a.nom || a.name || '').toLowerCase().includes((p.name || '').toLowerCase().substring(0, 8)) ||
-            (p.name || '').toLowerCase().includes((a.nom || a.name || '').toLowerCase().substring(0, 8))
-          );
+          const match = margeActivites.find((a) => {
+            const act = a as Record<string, unknown>;
+            return ((act.nom || act.name || '') as string).toLowerCase().includes((p.name || '').toLowerCase().substring(0, 8)) ||
+              (p.name || '').toLowerCase().includes(((act.nom || act.name || '') as string).toLowerCase().substring(0, 8));
+          }) as Record<string, unknown> | undefined;
           if (match) {
-            return { ...p, ca: match.ca || 0, marge_pct: match.ca > 0 ? Math.round(((match.marge_brute || 0) / match.ca) * 100) : 60 };
+            const ca = (match.ca as number) || 0;
+            const margeBrute = (match.marge_brute as number) || 0;
+            return { ...p, ca, marge_pct: ca > 0 ? Math.round((margeBrute / ca) * 100) : 60 };
           }
           return p;
         });
@@ -681,7 +645,6 @@ export default function EntrepreneurDashboard() {
           // HTTP error (400/500) — show the real server error, do NOT fall back to polling
           const err = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
           const serverMsg = err.error || 'La génération a échoué';
-          console.error(`[OVO] Server error ${response.status}:`, serverMsg);
           throw new Error(`Échec génération OVO Excel (${response.status}): ${serverMsg}`);
         }
 
@@ -695,7 +658,6 @@ export default function EntrepreneurDashboard() {
           throw fetchErr; // Re-throw HTTP errors directly — don't mask them
         }
         // True network error / connection closed — fall back to polling
-        console.warn('[OVO] Network error, falling back to polling:', fetchErr.message);
         toast.info('Connexion interrompue — vérification en cours (peut prendre 3-5 min)...');
         const polled = await pollForOvoCompletion(enterprise.id, requestId, startedAt);
         if (polled) {
@@ -719,15 +681,15 @@ export default function EntrepreneurDashboard() {
 
   const handleDownloadOvoFile = async (url: string) => {
     try {
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession, navigate);
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Erreur de téléchargement');
       const blob = await response.blob();
       // Try to get real file name from deliverable data
-      const ovoDeliv = deliverables.find((d: any) => d.type === 'plan_ovo_excel');
-      const realName = (ovoDeliv?.data as any)?.file_name;
+      const ovoDeliv = deliverables.find((d) => d.type === 'plan_ovo_excel');
+      const realName = (ovoDeliv?.data as Record<string, unknown> | null)?.file_name as string | undefined;
       const downloadName = realName || `${enterprise?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'entreprise'}_PlanFinancierOVO.xlsm`;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -745,7 +707,7 @@ export default function EntrepreneurDashboard() {
   const handleDownload = async (type: string, format: string) => {
     if (!enterprise) return;
     try {
-      const token = await getValidAccessToken();
+      const token = await getValidAccessToken(authSession, navigate);
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-deliverable?type=${type}&enterprise_id=${enterprise.id}&format=${format}`;
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Erreur'); }
