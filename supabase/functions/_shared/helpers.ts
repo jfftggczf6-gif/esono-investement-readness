@@ -27,7 +27,6 @@ export async function parseDocx(arrayBuffer: ArrayBuffer): Promise<string> {
     const docXml = await zip.file("word/document.xml")?.async("string");
     if (!docXml) return "[DOCX: contenu introuvable]";
 
-    // Extract text from XML paragraphs
     let text = "";
     const paragraphs = docXml.split(/<w:p[ >]/);
     for (const para of paragraphs) {
@@ -39,7 +38,6 @@ export async function parseDocx(arrayBuffer: ArrayBuffer): Promise<string> {
       if (lineText.trim()) text += lineText + "\n";
     }
 
-    // Also try headers/footers
     for (const fileName of Object.keys(zip.files)) {
       if ((fileName.startsWith("word/header") || fileName.startsWith("word/footer")) && fileName.endsWith(".xml")) {
         const headerXml = await zip.file(fileName)?.async("string");
@@ -66,7 +64,6 @@ export async function parseXlsx(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     const zip = await JSZip.loadAsync(arrayBuffer);
 
-    // Read shared strings
     const sharedStringsXml = await zip.file("xl/sharedStrings.xml")?.async("string");
     const sharedStrings: string[] = [];
     if (sharedStringsXml) {
@@ -77,7 +74,6 @@ export async function parseXlsx(arrayBuffer: ArrayBuffer): Promise<string> {
       }
     }
 
-    // Read workbook to get sheet names
     const workbookXml = await zip.file("xl/workbook.xml")?.async("string");
     const sheetNames: string[] = [];
     if (workbookXml) {
@@ -89,7 +85,6 @@ export async function parseXlsx(arrayBuffer: ArrayBuffer): Promise<string> {
     }
 
     let result = "";
-    // Parse each sheet
     const sheetFiles = Object.keys(zip.files).filter(f => f.match(/^xl\/worksheets\/sheet\d+\.xml$/)).sort();
 
     for (let si = 0; si < sheetFiles.length; si++) {
@@ -99,7 +94,6 @@ export async function parseXlsx(arrayBuffer: ArrayBuffer): Promise<string> {
       const sheetName = sheetNames[si] || `Feuille ${si + 1}`;
       result += `\n=== ${sheetName} ===\n`;
 
-      // Parse rows
       const rows = sheetXml.split(/<row /);
       for (let ri = 1; ri < rows.length; ri++) {
         const rowContent = rows[ri];
@@ -112,7 +106,6 @@ export async function parseXlsx(arrayBuffer: ArrayBuffer): Promise<string> {
           const valueMatch = cell.match(/<v>([^<]*)<\/v>/);
 
           if (!valueMatch) {
-            // Check for inline string
             const inlineMatch = cell.match(/<is><t>([^<]*)<\/t><\/is>/);
             rowValues.push(inlineMatch ? inlineMatch[1] : "");
             continue;
@@ -120,7 +113,6 @@ export async function parseXlsx(arrayBuffer: ArrayBuffer): Promise<string> {
 
           const rawValue = valueMatch[1];
           if (typeMatch && typeMatch[1] === "s") {
-            // Shared string reference
             const idx = parseInt(rawValue, 10);
             rowValues.push(sharedStrings[idx] || rawValue);
           } else {
@@ -165,7 +157,6 @@ export async function verifyAndGetContext(req: Request) {
     throw { status: 404, message: "Entreprise non trouvée" };
   }
 
-  // Get uploaded documents content with DOCX/XLSX parsing
   const { data: files } = await supabase.storage.from("documents").list(enterprise_id);
   let documentContent = "";
   if (files && files.length > 0) {
@@ -189,7 +180,6 @@ export async function verifyAndGetContext(req: Request) {
         const text = await fileData.text();
         documentContent += `\n\n--- Document: ${file.name} ---\n${text.substring(0, 15000)}`;
       } else if (ext === "pdf") {
-        // PDF needs specialized parsing - provide metadata only
         documentContent += `\n\n--- Document: ${file.name} (PDF - ${(file.metadata?.size || 0) / 1024}KB) ---`;
       } else {
         documentContent += `\n\n--- Document: ${file.name} (format non supporté) ---`;
@@ -197,12 +187,10 @@ export async function verifyAndGetContext(req: Request) {
     }
   }
 
-  // Get all existing module data
   const { data: modulesData } = await supabase.from("enterprise_modules").select("*").eq("enterprise_id", enterprise_id);
   const moduleMap: Record<string, any> = {};
   (modulesData || []).forEach((m: any) => { moduleMap[m.module] = m.data || {}; });
 
-  // Get existing deliverables
   const { data: delivs } = await supabase.from("deliverables").select("*").eq("enterprise_id", enterprise_id);
   const deliverableMap: Record<string, any> = {};
   (delivs || []).forEach((d: any) => { deliverableMap[d.type] = d.data || {}; });
@@ -245,7 +233,6 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
 
   const aiResult = await aiResponse.json();
 
-  // Detect truncation
   if (aiResult.stop_reason === "max_tokens") {
     console.warn("AI response truncated (max_tokens reached)");
   }
@@ -253,13 +240,11 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
   const content = aiResult.content?.[0]?.text || "";
 
   try {
-    // Clean markdown wrapping
     let cleaned = content
       .replace(/```json\s*/gi, "")
       .replace(/```\s*/g, "")
       .trim();
 
-    // Find JSON boundaries
     const jsonStart = cleaned.search(/[\{\[]/);
     const jsonEnd = cleaned.lastIndexOf(jsonStart !== -1 && cleaned[jsonStart] === '[' ? ']' : '}');
 
@@ -273,13 +258,11 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
     try {
       return JSON.parse(cleaned);
     } catch {
-      // Fix common issues: trailing commas, control chars
       cleaned = cleaned
         .replace(/,\s*}/g, "}")
         .replace(/,\s*]/g, "]")
         .replace(/[\x00-\x1F\x7F]/g, "");
 
-      // Attempt to fix truncated JSON
       let openBraces = (cleaned.match(/{/g) || []).length;
       let closeBraces = (cleaned.match(/}/g) || []).length;
       let openBrackets = (cleaned.match(/\[/g) || []).length;
@@ -288,20 +271,17 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
       if (openBrackets > closeBrackets || openBraces > closeBraces) {
         console.warn("Truncated JSON detected, attempting deep repair...");
         
-        // Close any unclosed string (find last unescaped quote)
         const quoteCount = (cleaned.match(/(?<!\\)"/g) || []).length;
         if (quoteCount % 2 !== 0) {
           cleaned += '"';
         }
         
-        // Remove trailing incomplete key-value patterns
         cleaned = cleaned
-          .replace(/,\s*"[^"]*"\s*:\s*"[^"]*$/, "")  // truncated string value
-          .replace(/,\s*"[^"]*"\s*:\s*$/, "")          // key with no value
-          .replace(/,\s*"[^"]*$/, "")                   // truncated key
-          .replace(/,\s*$/, "");                         // trailing comma
+          .replace(/,\s*"[^"]*"\s*:\s*"[^"]*$/, "")
+          .replace(/,\s*"[^"]*"\s*:\s*$/, "")
+          .replace(/,\s*"[^"]*$/, "")
+          .replace(/,\s*$/, "");
         
-        // Recount after cleanup
         openBraces = (cleaned.match(/{/g) || []).length;
         closeBraces = (cleaned.match(/}/g) || []).length;
         openBrackets = (cleaned.match(/\[/g) || []).length;
@@ -314,7 +294,6 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
       try {
         return JSON.parse(cleaned);
       } catch (e2: any) {
-        // Last resort: progressively trim from end until parseable
         console.warn("Deep repair failed, trying progressive trim...");
         let trimmed = cleaned;
         for (let i = 0; i < 20; i++) {
@@ -357,27 +336,66 @@ export async function saveDeliverable(supabase: any, enterprise_id: string, type
     .eq("module", moduleCode);
 }
 
-// ===== UEMOA FISCAL PARAMETERS =====
+// ===== UEMOA FISCAL PARAMETERS (SOURCE DE VÉRITÉ UNIQUE) =====
 export const FISCAL_PARAMS: Record<string, {
   tva: number; is: number; ir_max: number; smig: number;
   patente: string; cotisations_sociales: number; devise: string;
 }> = {
-  "Côte d'Ivoire": { tva: 18, is: 25, ir_max: 36, smig: 60000, patente: "0.5% CA", cotisations_sociales: 23.5, devise: "FCFA" },
-  "Sénégal": { tva: 18, is: 30, ir_max: 40, smig: 52500, patente: "Variable", cotisations_sociales: 22, devise: "FCFA" },
-  "Mali": { tva: 18, is: 30, ir_max: 40, smig: 40000, patente: "Variable", cotisations_sociales: 22, devise: "FCFA" },
-  "Burkina Faso": { tva: 18, is: 27.5, ir_max: 35, smig: 34664, patente: "Variable", cotisations_sociales: 21.5, devise: "FCFA" },
-  "Bénin": { tva: 18, is: 30, ir_max: 35, smig: 40000, patente: "Variable", cotisations_sociales: 22.4, devise: "FCFA" },
-  "Togo": { tva: 18, is: 27, ir_max: 35, smig: 35000, patente: "Variable", cotisations_sociales: 21, devise: "FCFA" },
-  "Niger": { tva: 19, is: 30, ir_max: 35, smig: 30047, patente: "Variable", cotisations_sociales: 21.5, devise: "FCFA" },
-  "Guinée-Bissau": { tva: 17, is: 25, ir_max: 30, smig: 19030, patente: "Variable", cotisations_sociales: 18, devise: "FCFA" },
-  "Cameroun": { tva: 19.25, is: 33, ir_max: 35, smig: 41875, patente: "Variable", cotisations_sociales: 18.5, devise: "FCFA" },
-  "Gabon": { tva: 18, is: 30, ir_max: 35, smig: 150000, patente: "Variable", cotisations_sociales: 20.1, devise: "FCFA" },
-  "Congo": { tva: 18.9, is: 28, ir_max: 40, smig: 90000, patente: "Variable", cotisations_sociales: 22.5, devise: "FCFA" },
-  "RDC": { tva: 16, is: 30, ir_max: 40, smig: 7075, patente: "Variable", cotisations_sociales: 13.5, devise: "CDF" },
+  "Côte d'Ivoire": { tva: 18, is: 25, ir_max: 36, smig: 75000, patente: "0.5% CA", cotisations_sociales: 25, devise: "FCFA" },
+  "Sénégal":        { tva: 18, is: 30, ir_max: 40, smig: 60000, patente: "Variable", cotisations_sociales: 24, devise: "FCFA" },
+  "Mali":           { tva: 18, is: 30, ir_max: 40, smig: 40000, patente: "Variable", cotisations_sociales: 22, devise: "FCFA" },
+  "Burkina Faso":   { tva: 18, is: 27.5, ir_max: 35, smig: 35000, patente: "Variable", cotisations_sociales: 22, devise: "FCFA" },
+  "Bénin":          { tva: 18, is: 30, ir_max: 35, smig: 40000, patente: "Variable", cotisations_sociales: 24.5, devise: "FCFA" },
+  "Togo":           { tva: 18, is: 27, ir_max: 35, smig: 35000, patente: "Variable", cotisations_sociales: 23.5, devise: "FCFA" },
+  "Niger":          { tva: 19, is: 30, ir_max: 35, smig: 30047, patente: "Variable", cotisations_sociales: 20, devise: "FCFA" },
+  "Guinée-Bissau":  { tva: 17, is: 25, ir_max: 30, smig: 19030, patente: "Variable", cotisations_sociales: 18, devise: "FCFA" },
+  "Cameroun":       { tva: 19.25, is: 33, ir_max: 35, smig: 41875, patente: "Variable", cotisations_sociales: 18.5, devise: "FCFA" },
+  "Gabon":          { tva: 18, is: 30, ir_max: 35, smig: 150000, patente: "Variable", cotisations_sociales: 20.1, devise: "FCFA" },
+  "Congo":          { tva: 18.9, is: 28, ir_max: 40, smig: 90000, patente: "Variable", cotisations_sociales: 22.6, devise: "FCFA" },
+  "RDC":            { tva: 16, is: 30, ir_max: 40, smig: 7075, patente: "Variable", cotisations_sociales: 14.5, devise: "CDF" },
+  "Guinée":         { tva: 18, is: 35, ir_max: 40, smig: 440000, patente: "Variable", cotisations_sociales: 23, devise: "GNF" },
 };
 
 export function getFiscalParams(country: string) {
-  return FISCAL_PARAMS[country] || FISCAL_PARAMS["Côte d'Ivoire"];
+  // Direct match
+  if (FISCAL_PARAMS[country]) return FISCAL_PARAMS[country];
+  // Fuzzy match
+  const c = (country || '').toLowerCase().trim();
+  for (const [key, val] of Object.entries(FISCAL_PARAMS)) {
+    if (c.includes(key.toLowerCase()) || key.toLowerCase().includes(c)) return val;
+  }
+  return FISCAL_PARAMS["Côte d'Ivoire"];
+}
+
+/**
+ * Returns fiscal params in prompt-friendly format for AI system prompts.
+ * This is the SINGLE source — no more local copies in edge functions.
+ */
+export function getFiscalParamsForPrompt(country: string): {
+  tva: number; is_standard: number; is_pme: number; seuil_pme: string;
+  charges_sociales: number; focus: string;
+} {
+  const fp = getFiscalParams(country);
+  const c = (country || '').toLowerCase().trim();
+  
+  // CIV has a special PME regime
+  const isCIV = c.includes("ivoire") || c.includes("civ") || country === "Côte d'Ivoire";
+  
+  // Determine focus name
+  let focus = country;
+  for (const key of Object.keys(FISCAL_PARAMS)) {
+    const kl = key.toLowerCase();
+    if (c.includes(kl) || kl.includes(c)) { focus = key; break; }
+  }
+  
+  return {
+    tva: fp.tva,
+    is_standard: fp.is,
+    is_pme: isCIV ? 4 : fp.is,
+    seuil_pme: isCIV ? '200M FCFA' : 'N/A',
+    charges_sociales: fp.cotisations_sociales,
+    focus,
+  };
 }
 
 // ===== RAG: BUILD KNOWLEDGE CONTEXT =====
@@ -394,11 +412,9 @@ export async function buildRAGContext(
       .in("category", categories)
       .limit(30);
 
-    // Get entries matching country OR global (null country)
     const { data: entries } = await query;
     if (!entries || entries.length === 0) return "";
 
-    // Filter: prefer country-specific, then global, then sector-specific
     const countryLower = (country || "").toLowerCase();
     const sectorLower = (sector || "").toLowerCase();
     

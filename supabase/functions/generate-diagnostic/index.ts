@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   corsHeaders, errorResponse, jsonResponse,
-  verifyAndGetContext, callAI, saveDeliverable, buildRAGContext
+  verifyAndGetContext, callAI, saveDeliverable, buildRAGContext,
+  getFiscalParams
 } from "../_shared/helpers.ts";
 import { normalizeDiagnostic } from "../_shared/normalizers.ts";
 
@@ -237,16 +238,17 @@ serve(async (req) => {
     const pays = ent.country || "Côte d'Ivoire";
     const secteur = ent.sector || "Non spécifié";
 
-    // Base de connaissances par pays (valeurs par défaut UEMOA)
+    // Base de connaissances par pays — use centralized fiscal params
+    const fp = getFiscalParams(pays);
     const kbContext = {
       pays,
       secteur,
       reglementation_fiscale: {
-        tva: 18,
-        is: pays === "Sénégal" ? 30 : pays === "Burkina Faso" ? 27.5 : pays === "Mali" ? 30 : pays === "Togo" ? 27 : 25,
-        charges_sociales_employeur: pays === "Sénégal" ? 20 : pays === "Togo" ? 20.5 : 25,
-        smig_mensuel: pays === "Sénégal" ? 60000 : pays === "Burkina Faso" ? 35000 : pays === "Mali" ? 40000 : pays === "Togo" ? 35000 : 75000,
-        unite: "XOF"
+        tva: fp.tva,
+        is: fp.is,
+        charges_sociales_employeur: fp.cotisations_sociales,
+        smig_mensuel: fp.smig,
+        unite: fp.devise
       },
       benchmarks_sectoriels: {
         agroalimentaire:  { marge_brute: [35, 55], marge_nette: [5, 18], dscr_min: 1.2 },

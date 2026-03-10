@@ -126,6 +126,35 @@ export function normalizeInputs(raw: any): any {
     resultat_net: toNumber(pick(cr, 'resultat_net', 'net_income', 'bénéfice_net')),
   };
 
+  // Normalize bilan key variants
+  const rawBilan = d.bilan || d.balance_sheet || d.bilan_comptable || {};
+  const rawActif = rawBilan.actif || rawBilan.assets || rawBilan.asset || {};
+  const rawPassif = rawBilan.passif || rawBilan.liabilities || rawBilan.passifs || {};
+  d.bilan = {
+    actif: {
+      immobilisations: toNumber(pick(rawActif, 'immobilisations', 'fixed_assets', 'immo')),
+      stocks: toNumber(pick(rawActif, 'stocks', 'inventories', 'inventory')),
+      creances_clients: toNumber(pick(rawActif, 'creances_clients', 'créances_clients', 'receivables', 'creances')),
+      tresorerie: toNumber(pick(rawActif, 'tresorerie', 'trésorerie', 'cash', 'disponibilites')),
+      total_actif: toNumber(pick(rawActif, 'total_actif', 'total_assets', 'total')),
+    },
+    passif: {
+      capitaux_propres: toNumber(pick(rawPassif, 'capitaux_propres', 'equity', 'fonds_propres')),
+      dettes_lt: toNumber(pick(rawPassif, 'dettes_lt', 'long_term_debt', 'dettes_long_terme')),
+      dettes_ct: toNumber(pick(rawPassif, 'dettes_ct', 'short_term_debt', 'dettes_court_terme')),
+      fournisseurs: toNumber(pick(rawPassif, 'fournisseurs', 'payables', 'accounts_payable')),
+      total_passif: toNumber(pick(rawPassif, 'total_passif', 'total_liabilities', 'total')),
+    },
+  };
+
+  // Normalize effectifs
+  const rawEff = d.effectifs || d.employees || d.staff || {};
+  d.effectifs = {
+    total: toNumber(pick(rawEff, 'total', 'count', 'nombre')),
+    cadres: toNumber(pick(rawEff, 'cadres', 'managers', 'management')),
+    employes: toNumber(pick(rawEff, 'employes', 'employés', 'workers', 'ouvriers')),
+  };
+
   return d;
 }
 
@@ -446,25 +475,28 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
   const AN_KEYS = ['an1', 'an2', 'an3', 'an4', 'an5'];
 
   // Helper: find a ligne by label patterns
-  const findLigne = (...patterns: string[]) => {
+  // Helper: find a ligne by label patterns, optionally excluding patterns containing certain strings
+  const findLigne = (excludePatterns: string[] = [], ...patterns: string[]) => {
     return lignes.find((l: any) => {
       const lb = (l.poste || l.libelle || '').toLowerCase();
+      if (excludePatterns.some(ex => lb.includes(ex))) return false;
       return patterns.some(p => lb.includes(p));
     });
   };
 
-  const caLine = findLigne('ca total', 'chiffre', 'revenue', 'ca ');
-  const mbLine = findLigne('marge brute', 'gross');
-  const ebitdaLine = findLigne('ebitda');
-  const rnLine = findLigne('résultat net', 'resultat net', 'net profit');
-  const cfLine = findLigne('cash', 'trésorerie', 'tresorerie');
+  const caLine = findLigne([], 'ca total', 'chiffre', 'revenue', 'ca ');
+  // Exclude lines containing '%' to avoid confusing amounts with percentages
+  const mbLine = findLigne(['%', '(%)'], 'marge brute', 'gross');
+  const ebitdaLine = findLigne(['%', '(%)'], 'ebitda');
+  const rnLine = findLigne([], 'résultat net', 'resultat net', 'net profit');
+  const cfLine = findLigne([], 'cash', 'trésorerie', 'tresorerie');
 
   // Overwrite each projection year with framework values
   const overwrite = (series: any, ligne: any) => {
     if (!ligne || !series) return;
     for (let i = 0; i < 5; i++) {
-      const val = toNumber(ligne[AN_KEYS[i]], undefined as any);
-      if (val !== undefined && !isNaN(val)) {
+      const val = toNumber(ligne[AN_KEYS[i]], NaN);
+      if (!isNaN(val)) {
         series[PROJ_KEYS[i]] = val;
       }
     }
@@ -511,7 +543,7 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
     const cfValues = PROJ_KEYS.map((yk, i) => data.cashflow[yk] / Math.pow(1 + discountRate, i + 1));
     data.investment_metrics.van = Math.round(cfValues.reduce((a: number, b: number) => a + b, 0) - initialInv);
 
-    // IRR approximation (Newton-Raphson)
+    // IRR approximation (Newton-Raphson) with safety bounds
     let irr = 0.1;
     for (let iter = 0; iter < 50; iter++) {
       let npv = -initialInv;
@@ -523,22 +555,23 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
       }
       if (Math.abs(dnpv) < 1e-10) break;
       irr = irr - npv / dnpv;
+      if (isNaN(irr) || irr < -0.99 || irr > 10) { irr = 0; break; }
       if (Math.abs(npv) < 1000) break;
     }
-    data.investment_metrics.tri = Math.round(irr * 10000) / 10000;
+    data.investment_metrics.tri = isNaN(irr) ? 0 : Math.round(irr * 10000) / 10000;
 
-    // CAGR Revenue — use current_year (anchored on Inputs) as base
+    // CAGR Revenue — current_year to year6 = 6 years span
     const revCY = data.revenue.current_year;
     const revY6 = data.revenue.year6;
     if (revCY > 0 && revY6 > 0 && revY6 !== revCY) {
-      data.investment_metrics.cagr_revenue = Math.round((Math.pow(revY6 / revCY, 1 / 5) - 1) * 10000) / 10000;
+      data.investment_metrics.cagr_revenue = Math.round((Math.pow(revY6 / revCY, 1 / 6) - 1) * 10000) / 10000;
     }
 
-    // CAGR EBITDA
+    // CAGR EBITDA — current_year to year6 = 6 years span
     const ebCY = data.ebitda.current_year;
     const ebY6 = data.ebitda.year6;
     if (ebCY > 0 && ebY6 > 0 && ebY6 !== ebCY) {
-      data.investment_metrics.cagr_ebitda = Math.round((Math.pow(ebY6 / ebCY, 1 / 5) - 1) * 10000) / 10000;
+      data.investment_metrics.cagr_ebitda = Math.round((Math.pow(ebY6 / ebCY, 1 / 6) - 1) * 10000) / 10000;
     }
 
     // ROI
@@ -569,10 +602,10 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
     // ── Post-calculation validation guards ──
     // Guard: CAGR too low but revenue grew significantly
     if (data.investment_metrics.cagr_revenue < 0.01 && revY6 > revCY * 1.5) {
-      data.investment_metrics.cagr_revenue = Math.round((Math.pow(revY6 / revCY, 1 / 5) - 1) * 10000) / 10000;
+      data.investment_metrics.cagr_revenue = Math.round((Math.pow(revY6 / revCY, 1 / 6) - 1) * 10000) / 10000;
     }
     if (data.investment_metrics.cagr_ebitda < 0.01 && ebY6 > ebCY * 1.5) {
-      data.investment_metrics.cagr_ebitda = Math.round((Math.pow(ebY6 / ebCY, 1 / 5) - 1) * 10000) / 10000;
+      data.investment_metrics.cagr_ebitda = Math.round((Math.pow(ebY6 / ebCY, 1 / 6) - 1) * 10000) / 10000;
     }
     // Guard: TRI negative but VAN positive → retry Newton-Raphson with different seed
     if (data.investment_metrics.tri <= 0 && data.investment_metrics.van > 0) {
@@ -587,10 +620,10 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
         }
         if (Math.abs(dnpvR) < 1e-10) break;
         irrRetry = irrRetry - npvR / dnpvR;
-        if (irrRetry < -0.99) { irrRetry = 0; break; }
+        if (isNaN(irrRetry) || irrRetry < -0.99 || irrRetry > 10) { irrRetry = 0; break; }
         if (Math.abs(npvR) < 1000) break;
       }
-      if (irrRetry > 0) data.investment_metrics.tri = Math.round(irrRetry * 10000) / 10000;
+      if (irrRetry > 0 && !isNaN(irrRetry)) data.investment_metrics.tri = Math.round(irrRetry * 10000) / 10000;
     }
     // Guard: payback 0 but funding needed
     if (data.investment_metrics.payback_years === 0 && initialInv > 0) {
