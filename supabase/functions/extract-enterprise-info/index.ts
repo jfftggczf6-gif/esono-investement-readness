@@ -81,7 +81,7 @@ Si une information n'est pas trouvable, mets null pour ce champ.`;
 
     let content = "";
     for (let attempt = 0; attempt < 2; attempt++) {
-      const aiResponse = await fetch("https://ai.lovable.dev/chat/completions", {
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${LOVABLE_API_KEY}`,
