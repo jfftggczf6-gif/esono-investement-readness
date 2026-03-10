@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Sparkles } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type ModuleCode = Database['public']['Enums']['module_code'];

@@ -3,8 +3,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import {
   Loader2, LogIn, Rocket, GraduationCap, CheckCircle2, ArrowRight,
-  BookOpen, Sparkles, Users, LayoutGrid, Globe, FileSpreadsheet,
-  BarChart3, Stethoscope, ListChecks, FileText, Target, Lock, ChevronRight
+  BookOpen, Sparkles, Users, LayoutGrid, Globe,
+  BarChart3, Stethoscope, ListChecks, FileText, Target, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

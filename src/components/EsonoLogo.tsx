@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-import { Leaf } from 'lucide-react';
 
 export default function EsonoLogo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   const sizeMap = {

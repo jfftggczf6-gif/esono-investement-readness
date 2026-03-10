@@ -137,7 +137,7 @@ export default function PlanOvoViewer({ data }: { data: any }) {
     const currentIdx = 2;
     // Future cashflows: year2..year6 (indices 3-7)
     const futureCf = cfSeries.slice(3);
-    const futureEbitda = ebitdaSeries.slice(3);
+    void ebitdaSeries.slice(3); // futureEbitda reserved
     // Total investment
     const capexTotal = (data.capex || []).reduce((s: number, c: any) => s + (Number(c.acquisition_value) || 0), 0);
     const fundingNeed = Number(data.funding_need) || 0;
@@ -181,7 +181,7 @@ export default function PlanOvoViewer({ data }: { data: any }) {
   const fmtMetric = (v: number | null, suffix = '') => v == null ? '—' : `${v.toFixed(1)}${suffix}`;
 
   // Chart data
-  const chartData = YEAR_KEYS.map((k, i) => ({
+  const chartData = YEAR_KEYS.map((_k, i) => ({
     name: labels[i],
     Revenue: revSeries[i],
     EBITDA: ebitdaSeries[i],

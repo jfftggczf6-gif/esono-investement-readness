@@ -1,4 +1,4 @@
-import { Progress } from '@/components/ui/progress';
+// BmcViewer
 
 interface BmcViewerProps {
   data: any;

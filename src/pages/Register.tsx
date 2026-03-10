@@ -29,7 +29,7 @@ export default function Register() {
   const [accepted, setAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { signUp, setRole } = useAuth();
+  const { signUp, setRole: _setRole } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {

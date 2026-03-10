@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,16 +12,17 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
-  Plus, Building2, Upload, Sparkles, Download,
-  LogOut, User, Clock, CheckCircle2, Loader2, X, FileUp,
-  BookOpen, Lock, FolderPlus, Pencil, Trash2, TrendingUp
+  Plus, Building2, Sparkles, Download,
+  LogOut, Clock, CheckCircle2, Loader2,
+  FolderPlus, Pencil, Trash2, TrendingUp,
+  FileText, BarChart3, Stethoscope, LayoutGrid, Globe, FileSpreadsheet, Target
 } from 'lucide-react';
 import BmcViewer from './BmcViewer';
 import SicViewer from './SicViewer';
 import DeliverableViewer from './DeliverableViewer';
 import BusinessPlanPreview from './BusinessPlanPreview';
 import {
-  MODULE_CONFIG, DELIVERABLE_CONFIG, PIPELINE, MODULE_FN_MAP,
+  MODULE_CONFIG, PIPELINE, MODULE_FN_MAP,
   type Enterprise, type Deliverable, type EnterpriseModule, type UploadedFile,
 } from '@/lib/dashboard-config';
 import { getValidAccessToken } from '@/lib/getValidAccessToken';
@@ -60,7 +61,7 @@ export default function EntrepreneurDashboard() {
   const [saving, setSaving] = useState(false);
   const [extractedInfo, setExtractedInfo] = useState<{ name: string | null; country: string | null; sector: string | null } | null>(null);
   const [showExtractDialog, setShowExtractDialog] = useState(false);
-  const [extracting, setExtracting] = useState(false);
+  const [_extracting, setExtracting] = useState(false);
   const docInputRef = useRef<HTMLInputElement>(null);
   const finInputRef = useRef<HTMLInputElement>(null);
   const extraInputRef = useRef<HTMLInputElement>(null);
@@ -426,7 +427,7 @@ export default function EntrepreneurDashboard() {
     return matches.sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
   };
 
-  const completedCount = modules.filter((m) => m.status === 'completed').length;
+  void modules.filter((m) => m.status === 'completed').length;
   const scoredDeliverables = deliverables.filter((d) => d.score != null);
   const globalScore = scoredDeliverables.length > 0
     ? Math.round(scoredDeliverables.reduce((sum, d) => sum + (d.score || 0), 0) / scoredDeliverables.length)
@@ -519,7 +520,7 @@ export default function EntrepreneurDashboard() {
         }
 
         // 3. BMC canvas: flux_revenus, proposition_valeur
-        const canvas = bmcData?.canvas || {};
+        const canvas: any = bmcData?.canvas || {};
         const items: Array<{ name: string; description: string; price?: number; deduit_du_bmc?: boolean }> = [];
 
         if (canvas.flux_revenus) {
@@ -527,7 +528,7 @@ export default function EntrepreneurDashboard() {
           if (fr.produit_principal) items.push({ name: fr.produit_principal, description: 'Produit principal (BMC)', deduit_du_bmc: true });
           if (fr.sources_revenus) {
             const sources = Array.isArray(fr.sources_revenus) ? fr.sources_revenus : [fr.sources_revenus];
-            sources.forEach((s) => { const item = s as Record<string, unknown>; items.push({ name: typeof s === 'string' ? s : (item.name || item.label || JSON.stringify(s)) as string, description: 'Source de revenus (BMC)', deduit_du_bmc: true }); });
+            sources.forEach((s: any) => { const item = s as Record<string, unknown>; items.push({ name: typeof s === 'string' ? s : (item.name || item.label || JSON.stringify(s)) as string, description: 'Source de revenus (BMC)', deduit_du_bmc: true }); });
           }
         }
         if (canvas.proposition_valeur) {
@@ -567,7 +568,7 @@ export default function EntrepreneurDashboard() {
               description: 'Activité clé transformée en produit/service (BMC)',
               deduit_du_bmc: true,
             };
-          }).filter((i) => i.name);
+          }).filter((i: any) => i.name);
         }
 
         return [];
@@ -595,15 +596,15 @@ export default function EntrepreneurDashboard() {
       }
 
       // Add prix_moyen from BMC
-      const bmcFluxRevenus = bmcData?.canvas?.flux_revenus || {};
+      const bmcFluxRevenus = (bmcData as any)?.canvas?.flux_revenus || {};
       const prixMoyen = bmcFluxRevenus?.prix_moyen || bmcFluxRevenus?.prix_unitaire || 0;
       if (prixMoyen > 0 && products.length > 0) {
         products = products.map(p => ({ ...p, price: p.price || prixMoyen }));
       }
 
       // Extract financial KPIs
-      const cr = inputsData?.compte_resultat || {};
-      const existingRevenue = cr.chiffre_affaires || cr.ca || inputsData?.revenue || inputsData?.chiffre_affaires || 0;
+      const cr: any = inputsData?.compte_resultat || {};
+      const existingRevenue = cr.chiffre_affaires || cr.ca || (inputsData as any)?.revenue || (inputsData as any)?.chiffre_affaires || 0;
 
       const payload = {
         user_id: user?.id,
@@ -612,7 +613,7 @@ export default function EntrepreneurDashboard() {
         company: enterprise.name,
         country: enterprise.country || "IVORY COAST",
         sector: enterprise.sector || "",
-        business_model: bmcData?.canvas?.proposition_valeur?.enonce || bmcData?.business_model || bmcData?.proposition_valeur || "",
+        business_model: (bmcData as any)?.canvas?.proposition_valeur?.enonce || (bmcData as any)?.business_model || (bmcData as any)?.proposition_valeur || "",
         current_year: new Date().getFullYear(),
         employees: enterprise.employees_count || 0,
         existing_revenue: existingRevenue,
@@ -1231,7 +1232,7 @@ export default function EntrepreneurDashboard() {
                       <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 text-xs font-semibold">
                         <Loader2 className="h-3.5 w-3.5 animate-spin" /> Génération en cours… (30-90 secondes)
                       </div>
-                    ) : selectedDeliv?.data?._meta?.download_url ? (
+                    ) : (selectedDeliv?.data as any)?._meta?.download_url ? (
                       <>
                         <button
                           onClick={() => handleDownloadBpWord()}

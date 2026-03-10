@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   Download, CheckCircle2, Clock, Loader2,
-  LayoutGrid, Globe, FileSpreadsheet, BarChart3,
+  LayoutGrid, Globe, BarChart3,
   Stethoscope, ListChecks, FileText, Target
 } from 'lucide-react';
 
