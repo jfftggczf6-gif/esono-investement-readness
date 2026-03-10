@@ -17,9 +17,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import {
-  Users, Building2, CheckCircle2, TrendingUp, ChevronRight,
+  Users, Building2, CheckCircle2, TrendingUp,
   Plus, Download, Sparkles, Loader2, ArrowLeft, Eye, Lock,
-  Share2, RefreshCw, AlertCircle, FileCheck, UserPlus, Search, Filter, Trash2
+  Share2, AlertCircle, FileCheck, UserPlus, Search, Trash2,
+  Upload, X, FileText, FileSpreadsheet, Stethoscope, LayoutGrid, Globe, Target
 } from 'lucide-react';
 import {
   MODULE_CONFIG_COACH as MODULE_CONFIG, MODULE_CONFIG as MIRROR_MODULES, PIPELINE,

@@ -12,9 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
-  Plus, Building2, Upload, Sparkles, Download,
-  LogOut, User, Clock, CheckCircle2, Loader2, X, FileUp,
-  BookOpen, Lock, FolderPlus, Pencil, Trash2, TrendingUp
+  Plus, Building2, Sparkles, Download,
+  LogOut, Clock, CheckCircle2, Loader2,
+  FolderPlus, Pencil, Trash2, TrendingUp,
+  FileText, BarChart3, Stethoscope, LayoutGrid, Globe, FileSpreadsheet, Target
 } from 'lucide-react';
 import BmcViewer from './BmcViewer';
 import SicViewer from './SicViewer';
