@@ -1118,6 +1118,8 @@ function parseFcfaValue(raw: string): number {
   return parseFloat(cleaned.replace(/[.,]/g, '')) || 0;
 }
 
+// deno-lint-ignore no-explicit-any
+function expandProductOrService(p: any): any {
   const yearLabels = ["YEAR-2","YEAR-1","CURRENT YEAR","YEAR2","YEAR3","YEAR4","YEAR5","YEAR6"];
 
   // If already has full 8-entry per_year, keep but validate volumes
