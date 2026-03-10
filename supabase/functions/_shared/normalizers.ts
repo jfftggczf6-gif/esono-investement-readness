@@ -620,10 +620,10 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
         }
         if (Math.abs(dnpvR) < 1e-10) break;
         irrRetry = irrRetry - npvR / dnpvR;
-        if (irrRetry < -0.99) { irrRetry = 0; break; }
+        if (isNaN(irrRetry) || irrRetry < -0.99 || irrRetry > 10) { irrRetry = 0; break; }
         if (Math.abs(npvR) < 1000) break;
       }
-      if (irrRetry > 0) data.investment_metrics.tri = Math.round(irrRetry * 10000) / 10000;
+      if (irrRetry > 0 && !isNaN(irrRetry)) data.investment_metrics.tri = Math.round(irrRetry * 10000) / 10000;
     }
     // Guard: payback 0 but funding needed
     if (data.investment_metrics.payback_years === 0 && initialInv > 0) {
