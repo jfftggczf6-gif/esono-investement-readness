@@ -1265,7 +1265,7 @@ export default function CoachDashboard() {
                           <div className="flex items-center gap-2">
                             {entDelivs.find((d: any) => d.type === 'odd_excel')?.file_url ? (
                               <>
-                                <button onClick={() => handleDownloadOddExcelCoach(entDelivs)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> ODD Excel (.xlsx)</button>
+                                <button onClick={() => handleDownloadOddExcelCoach(ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> ODD Excel (.xlsx)</button>
                                 <button onClick={() => handleDownloadCoach('odd_analysis', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-emerald-700 border border-emerald-300 text-xs font-semibold hover:bg-emerald-50 transition-colors"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
                               </>
                             ) : selectedDeliv ? (
