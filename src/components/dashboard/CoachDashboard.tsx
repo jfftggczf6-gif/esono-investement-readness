@@ -283,12 +283,6 @@ export default function CoachDashboard() {
 
   // ─── Generate (Parcours Rapide) ───────────────────────────────────────────
 
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, []);
-
   const handleGenerateCoach = async (enterpriseId: string) => {
     if (!user) return;
     setGenerating(true);
@@ -301,50 +295,33 @@ export default function CoachDashboard() {
 
     setGenerationProgress({ current: 0, total: PIPELINE.length, name: 'Lancement…' });
 
-    // Start polling DB every 5s
-    let pollCount = 0;
-    pollingRef.current = setInterval(async () => {
-      pollCount++;
-      await fetchData();
-      if (pollCount > 144) {
-        if (pollingRef.current) clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    }, 5000);
-
     let token: string;
     try { token = await getValidAccessToken(authSession); } catch { toast.error('Non authentifié'); setGenerating(false); return; }
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-deliverables`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ enterprise_id: enterpriseId }),
-        }
-      );
+      const pipelineResult = await runPipelineFromClient(enterpriseId, token, {
+        onProgress: setGenerationProgress,
+        onStepComplete: () => fetchData(),
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 402) toast.error("Crédits IA insuffisants.");
-        else toast.error(result.error || 'Erreur de génération');
-      } else {
+      if (pipelineResult.completedCount > 0) {
         // Mark all generated deliverables as coach-owned + private
         await supabase.from('deliverables')
           .update({ generated_by: 'coach', visibility: 'private', coach_id: user.id })
           .eq('enterprise_id', enterpriseId)
           .in('type', PIPELINE.map(s => s.type));
 
-        toast.success(`${result.deliverables_count || 0} livrable(s) générés — 🔒 privés par défaut`);
-        if (result.warning) toast.warning(result.warning);
+        toast.success(`${pipelineResult.completedCount} livrable(s) générés — 🔒 privés par défaut`);
+      }
+
+      if (pipelineResult.creditError) {
+        toast.error("Crédits IA insuffisants.");
       }
 
       await fetchData();
 
       // Auto-trigger OVO Excel
-      if (result.success) {
+      if (pipelineResult.completedCount > 0) {
         try {
           toast.info('Génération automatique du Plan Financier Excel...');
           await handleGenerateOvoPlanCoach(enterpriseId);
@@ -353,7 +330,6 @@ export default function CoachDashboard() {
     } catch (err: any) {
       toast.error(err.message || 'Erreur de génération');
     } finally {
-      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
       setGenerating(false);
       setGenerationProgress(null);
       await fetchData();
