@@ -88,6 +88,7 @@ serve(async (req) => {
       "generate-diagnostic": "diagnostic_data",
       "generate-plan-ovo": "plan_ovo",
       "reconcile-plan-ovo": "plan_ovo",
+      "generate-ovo-plan": "plan_ovo_excel",
       "generate-business-plan": "business_plan",
       "generate-odd": "odd_analysis",
     };
