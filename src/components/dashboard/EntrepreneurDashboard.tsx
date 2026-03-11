@@ -1259,7 +1259,18 @@ export default function EntrepreneurDashboard() {
                               .createSignedUrl(fileName, 3600);
 
                             if (!signedErr && signedData?.signedUrl) {
-                              await handleDownloadOvoFile(signedData.signedUrl);
+                              const response = await fetch(signedData.signedUrl);
+                              if (!response.ok) throw new Error('Erreur de téléchargement');
+                              const blob = await response.blob();
+                              const downloadName = `${enterprise?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'entreprise'}_ODD.xlsx`;
+                              const a = document.createElement('a');
+                              a.href = URL.createObjectURL(blob);
+                              a.download = downloadName;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(a.href);
+                              toast.success('Fichier téléchargé !');
                               return;
                             }
 
