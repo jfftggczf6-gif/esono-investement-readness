@@ -93,7 +93,7 @@ export function scaleToFrameworkTargets(json: Record<string, any>, frameworkData
       const yr = item.per_year.find((y: any) => y.year === yearLabel);
       if (!yr) continue;
       const price = yr.unit_price_r1 || yr.unit_price_r2 || yr.unit_price_r3 || 0;
-      const totalVol = (yr.volume_h1 || 0) + (yr.volume_h2 || 0);
+      const totalVol = (yr.volume_q1 || yr.volume_h1 || 0) + (yr.volume_q2 || yr.volume_h2 || 0) + (yr.volume_q3 || 0) + (yr.volume_q4 || 0);
       revenueExcel += totalVol * price;
     }
 
