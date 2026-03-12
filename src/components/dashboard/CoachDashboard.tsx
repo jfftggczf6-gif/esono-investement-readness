@@ -1024,12 +1024,6 @@ export default function CoachDashboard() {
                             onClick={() => handleDownloadCoach(DELIV_MAP[mod.code], 'html', ent.id)}>
                             <Download className="h-3 w-3" /> HTML
                           </Button>
-                          {mod.code === 'framework' && (
-                            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1"
-                              onClick={() => handleDownloadCoach('framework_data', 'xlsx', ent.id)}>
-                              <Download className="h-3 w-3" /> XLSX
-                            </Button>
-                          )}
                           {mod.code === 'plan_ovo' && entDelivs.find((x: any) => x.type === 'plan_ovo_excel') && (
                             <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1"
                               onClick={() => handleDownloadOvoCoach(ent.id, entDelivs)}>
@@ -1213,8 +1207,7 @@ export default function CoachDashboard() {
                             <div><p className="text-sm font-semibold text-emerald-900">Plan Financier Intermédiaire</p><p className="text-xs text-emerald-600">Framework rempli avec les données réelles</p></div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => handleDownloadCoach('framework_data', 'xlsx', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Framework Excel (.xlsx)</button>
-                            <button onClick={() => handleDownloadCoach('framework_data', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-emerald-700 border border-emerald-300 text-xs font-semibold hover:bg-emerald-50 transition-colors"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
+                            <button onClick={() => handleDownloadCoach('framework_data', 'html', ent.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"><Download className="h-3.5 w-3.5" /> Rapport HTML</button>
                           </div>
                         </div>
                       </div>
@@ -1377,12 +1370,6 @@ export default function CoachDashboard() {
                     onClick={() => handleDownloadCoach(DELIV_MAP[selectedModule], 'html', ent.id)}>
                     <Download className="h-3 w-3" /> HTML
                   </Button>
-                  {selectedModule === 'framework' && (
-                    <Button variant="outline" size="sm" className="h-7 px-3 text-xs gap-1"
-                      onClick={() => handleDownloadCoach('framework_data', 'xlsx', ent.id)}>
-                      <Download className="h-3 w-3" /> XLSX
-                    </Button>
-                  )}
                   {selectedModule === 'plan_ovo' && entDelivs.find((x: any) => x.type === 'plan_ovo_excel') && (
                     <Button variant="outline" size="sm" className="h-7 px-3 text-xs gap-1"
                       onClick={() => handleDownloadOvoCoach(ent.id, entDelivs)}>
