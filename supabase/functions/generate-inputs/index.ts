@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable, buildRAGContext, getFiscalParams } from "../_shared/helpers.ts";
 import { normalizeInputs } from "../_shared/normalizers.ts";
+import { getExtractionKnowledgePrompt } from "../_shared/financial-knowledge.ts";
 
 const SYSTEM_PROMPT = `Tu es un analyste financier expert certifié SYSCOHADA révisé (2017), spécialisé PME africaines (zones UEMOA/CEMAC).
 
@@ -13,6 +14,8 @@ RÈGLES D'EXTRACTION:
 3. Vérifie la cohérence: Total Actif = Total Passif, Résultat net cohérent.
 4. Tous les montants en FCFA sans séparateurs de milliers dans les champs numériques.
 5. Le score reflète la COMPLÉTUDE des données extraites (100 = toutes les données trouvées).
+
+${getExtractionKnowledgePrompt()}
 
 IMPORTANT: Réponds UNIQUEMENT en JSON valide.`;
 

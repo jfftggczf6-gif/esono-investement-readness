@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, errorResponse, jsonResponse, verifyAndGetContext, callAI, saveDeliverable, buildRAGContext, getFiscalParams } from "../_shared/helpers.ts";
 import { normalizeFramework } from "../_shared/normalizers.ts";
 import { fillFrameworkExcelTemplate } from "../_shared/framework-excel-template.ts";
+import { getFinancialKnowledgePrompt } from "../_shared/financial-knowledge.ts";
 
 const OPUS_MODEL = "claude-opus-4-20250514";
 
@@ -12,23 +13,11 @@ MÉTHODOLOGIE DE PROJECTION (obligatoire):
 2. APPROCHE BOTTOM-UP: Valider par les capacités de production, effectifs, et contraintes opérationnelles.
 3. Les projections DOIVENT être la moyenne pondérée des deux approches.
 
-FORMULES DE CALCUL OBLIGATOIRES:
-- CAGR = (Valeur_finale / Valeur_initiale)^(1/n) - 1, où n = nombre d'années
-- VAN = Σ(CF_t / (1+r)^t) - I₀, avec r = taux d'actualisation (12% par défaut)
-- TRI = taux r qui annule la VAN (résolution par itération)
-- DSCR = EBITDA / (Remboursement principal + Intérêts)
-- Point mort (CA) = Charges fixes / Taux de marge sur coûts variables
-
-RÈGLES DE VALIDATION:
-- Si croissance CA > 30%/an pendant 3+ ans → JUSTIFIER explicitement ou réduire
-- Si marge EBITDA > benchmark sectoriel + 15pts → signaler comme optimiste
-- projection_5ans.lignes: les valeurs an1 à an5 DOIVENT être numériques (pas de strings)
-- Vérifier: CA An5 projeté vs CA actuel → CAGR implicite doit être réaliste (5-25% pour PME)
-
 COHÉRENCE CROISÉE:
 - Les projections DOIVENT être cohérentes avec les données du module Inputs (compte de résultat réel)
 - Si le CA actuel (Inputs) = X, alors an1 ≈ X × (1 + taux_croissance_an1)
 - Les scénarios (prudent/central/ambitieux) doivent avoir des écarts proportionnels et justifiés
+- projection_5ans.lignes: les valeurs an1 à an5 DOIVENT être numériques (pas de strings)
 
 IMPORTANT: Réponds UNIQUEMENT en JSON valide. Tous les montants en FCFA, numériques sans formatage.`;
 
@@ -213,11 +202,18 @@ serve(async (req) => {
     const ragContext = await buildRAGContext(ctx.supabase, ent.country || "", ent.sector || "", ["benchmarks", "fiscal", "bailleurs", "secteurs"]);
     const fiscalParams = getFiscalParams(ent.country || "Côte d'Ivoire");
 
+    // Inject centralized financial knowledge (without examples to save context)
+    const countryKey = (ent.country || "Côte d'Ivoire").toLowerCase().replace(/[\s']/g, "_");
+    const sectorKey = (ent.sector || "services_b2b").toLowerCase().replace(/[\s\-\/]/g, "_");
+    const knowledgeBase = getFinancialKnowledgePrompt(countryKey, sectorKey, false);
+
     const enrichedPrompt = userPrompt(
       ent.name, ent.sector || "", ent.country || "Côte d'Ivoire", ctx.documentContent, inputsData, bmcData
     ) + ragContext + `\n\nPARAMÈTRES FISCAUX:\n${JSON.stringify(fiscalParams)}`;
 
-    const rawData = await callAI(SYSTEM_PROMPT, enrichedPrompt, 16384, OPUS_MODEL);
+    const enrichedSystemPrompt = SYSTEM_PROMPT + "\n\n" + knowledgeBase;
+
+    const rawData = await callAI(enrichedSystemPrompt, enrichedPrompt, 16384, OPUS_MODEL);
     const data = normalizeFramework(rawData);
 
     await saveDeliverable(ctx.supabase, ctx.enterprise_id, "framework_data", data, "framework");
