@@ -13,23 +13,11 @@ MÉTHODOLOGIE DE PROJECTION (obligatoire):
 2. APPROCHE BOTTOM-UP: Valider par les capacités de production, effectifs, et contraintes opérationnelles.
 3. Les projections DOIVENT être la moyenne pondérée des deux approches.
 
-FORMULES DE CALCUL OBLIGATOIRES:
-- CAGR = (Valeur_finale / Valeur_initiale)^(1/n) - 1, où n = nombre d'années
-- VAN = Σ(CF_t / (1+r)^t) - I₀, avec r = taux d'actualisation (12% par défaut)
-- TRI = taux r qui annule la VAN (résolution par itération)
-- DSCR = EBITDA / (Remboursement principal + Intérêts)
-- Point mort (CA) = Charges fixes / Taux de marge sur coûts variables
-
-RÈGLES DE VALIDATION:
-- Si croissance CA > 30%/an pendant 3+ ans → JUSTIFIER explicitement ou réduire
-- Si marge EBITDA > benchmark sectoriel + 15pts → signaler comme optimiste
-- projection_5ans.lignes: les valeurs an1 à an5 DOIVENT être numériques (pas de strings)
-- Vérifier: CA An5 projeté vs CA actuel → CAGR implicite doit être réaliste (5-25% pour PME)
-
 COHÉRENCE CROISÉE:
 - Les projections DOIVENT être cohérentes avec les données du module Inputs (compte de résultat réel)
 - Si le CA actuel (Inputs) = X, alors an1 ≈ X × (1 + taux_croissance_an1)
 - Les scénarios (prudent/central/ambitieux) doivent avoir des écarts proportionnels et justifiés
+- projection_5ans.lignes: les valeurs an1 à an5 DOIVENT être numériques (pas de strings)
 
 IMPORTANT: Réponds UNIQUEMENT en JSON valide. Tous les montants en FCFA, numériques sans formatage.`;
 
