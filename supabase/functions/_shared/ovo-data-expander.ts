@@ -351,6 +351,37 @@ export function alignOpexToPlanOvo(json: Record<string, any>, planOvoData?: Reco
         const target = Number(poObj[yearKey] || 0);
         if (target <= 0) continue;
 
+        // Fix #1: current_year (index 4) is always 0 in Excel — actual CY lives in H1 (idx 2) + H2 (idx 3)
+        if (yearKey === "current_year") {
+          let h1Total = 0, h2Total = 0;
+          for (const [, subVals] of subEntries) {
+            if (Array.isArray(subVals) && subVals.length > 3) {
+              h1Total += (subVals[2] || 0);
+              h2Total += (subVals[3] || 0);
+            }
+          }
+          const currentTotal = h1Total + h2Total;
+          if (currentTotal <= 0) {
+            console.log(`[alignOpex] ${excelKey}[current_year]: no existing H1/H2 data, distributing target=${target} as H1=45%/H2=55%`);
+            const firstSub = subEntries[0];
+            if (firstSub && Array.isArray(firstSub[1]) && firstSub[1].length > 3) {
+              json.opex[excelKey][firstSub[0]][2] = Math.round(target * 0.45 / 1000) * 1000;
+              json.opex[excelKey][firstSub[0]][3] = Math.round(target * 0.55 / 1000) * 1000;
+            }
+          } else {
+            const ratio = target / currentTotal;
+            if (Math.abs(ratio - 1) <= 0.10) continue;
+            console.log(`[alignOpex] ${excelKey}[current_year→H1+H2]: current=${currentTotal}, target=${target}, ratio=${ratio.toFixed(3)}`);
+            for (const [subKey, subVals] of subEntries) {
+              if (Array.isArray(subVals) && subVals.length > 3) {
+                json.opex[excelKey][subKey][2] = Math.round((subVals[2] || 0) * ratio / 1000) * 1000;
+                json.opex[excelKey][subKey][3] = Math.round((subVals[3] || 0) * ratio / 1000) * 1000;
+              }
+            }
+          }
+          continue;
+        }
+
         let currentTotal = 0;
         for (const [, subVals] of subEntries) {
           if (Array.isArray(subVals) && subVals.length > yi) {
@@ -472,6 +503,7 @@ export function alignTotalOpexToFramework(json: Record<string, any>, frameworkDa
 
   const fwMap: Record<string, string> = { "YEAR2": "an1", "YEAR3": "an2", "YEAR4": "an3", "YEAR5": "an4", "YEAR6": "an5" };
   // Excel OPEX array index: YEAR2→5, YEAR3→6, YEAR4→7, YEAR5→8, YEAR6→9
+  // CURRENT_YEAR is special: uses H1 (idx 2) + H2 (idx 3) combined
   const yearToIdx: Record<string, number> = { "YEAR2": 5, "YEAR3": 6, "YEAR4": 7, "YEAR5": 8, "YEAR6": 9 };
 
   const opexCategories = Object.keys(json.opex); // marketing, office, travel, etc.
