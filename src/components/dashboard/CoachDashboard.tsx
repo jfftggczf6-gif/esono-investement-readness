@@ -304,14 +304,17 @@ export default function CoachDashboard() {
         onStepComplete: () => fetchData(),
       });
 
-      if (pipelineResult.completedCount > 0) {
+      if (pipelineResult.executedCount > 0) {
         // Mark all generated deliverables as coach-owned + private
         await supabase.from('deliverables')
           .update({ generated_by: 'coach', visibility: 'private', coach_id: user.id })
           .eq('enterprise_id', enterpriseId)
           .in('type', PIPELINE.map(s => s.type));
 
-        toast.success(`${pipelineResult.completedCount} livrable(s) générés — 🔒 privés par défaut`);
+        const skippedMsg = pipelineResult.skippedCount > 0 ? `, ${pipelineResult.skippedCount} déjà à jour` : '';
+        toast.success(`${pipelineResult.executedCount} livrable(s) recalculé(s)${skippedMsg} — 🔒 privés par défaut`);
+      } else if (pipelineResult.skippedCount > 0) {
+        toast.info(`Tous les livrables sont déjà à jour. Utilisez "Régénération complète" pour forcer le recalcul.`);
       }
 
       if (pipelineResult.creditError) {
