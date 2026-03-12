@@ -30,18 +30,25 @@ function setCellInXml(
       !value.includes("/") &&
       !value.includes(" "));
 
+  // 1. Replace existing non-self-closing cell, preserving style attribute s="X"
+  const existingCellRegex = new RegExp(
+    `<c(?:\\s[^>]*)?\\sr="${cellRef}"(?:\\s[^>]*)?>(?:(?!</c>).)*</c>|<c(?:\\s[^>]*)?\\sr="${cellRef}"(?:\\s[^>]*)?/>`,
+    "s"
+  );
+  const existingMatch = sheetXml.match(existingCellRegex);
+  if (existingMatch) {
+    // Extract style attribute to preserve it
+    const styleMatch = existingMatch[0].match(/\bs="(\d+)"/);
+    const styleAttr = styleMatch ? ` s="${styleMatch[1]}"` : "";
+    const newCell = isNum
+      ? `<c r="${cellRef}"${styleAttr}><v>${value}</v></c>`
+      : `<c r="${cellRef}"${styleAttr} t="inlineStr"><is><t>${escapeXml(safeVal)}</t></is></c>`;
+    return sheetXml.replace(existingCellRegex, newCell);
+  }
+
   const newCell = isNum
     ? `<c r="${cellRef}"><v>${value}</v></c>`
     : `<c r="${cellRef}" t="inlineStr"><is><t>${escapeXml(safeVal)}</t></is></c>`;
-
-  // 1. Replace existing cell
-  const existingCellRegex = new RegExp(
-    `<c\\s+r="${cellRef}"(?:\\s[^>]*)?>(?:(?!</c>).)*</c>`,
-    "s"
-  );
-  if (existingCellRegex.test(sheetXml)) {
-    return sheetXml.replace(existingCellRegex, newCell);
-  }
 
   // 2. Insert into existing row
   const rowRegex = new RegExp(`(<row[^>]*\\br="${row}"[^>]*>)(.*?)(</row>)`, "s");
@@ -100,14 +107,25 @@ function getCellValue(
 // ===== TARGET ID NORMALIZATION =====
 
 function normalizeTargetId(id: string): string {
+  // Normalize separators and trim
   const cleaned = id.replace(/,/g, ".").trim().toLowerCase();
-  const match = cleaned.match(/^(\d+)[.,](\d+(?:[a-z])?)/);
-  if (match) {
-    const minor = parseFloat(match[2]);
-    return isNaN(minor)
-      ? `${match[1]}.${match[2]}`
-      : `${match[1]}.${minor}`;
+
+  // Handle "7.2 a" → "7.2a" (space before alpha suffix)
+  const spacedAlphaMatch = cleaned.match(/^(\d+\.\d+)\s+([a-z])$/);
+  if (spacedAlphaMatch) return `${spacedAlphaMatch[1]}${spacedAlphaMatch[2]}`;
+
+  // Handle "2.a", "9.b" (alpha suffix directly after dot)
+  const alphaMatch = cleaned.match(/^(\d+)\.([a-z])$/);
+  if (alphaMatch) return `${alphaMatch[1]}.${alphaMatch[2]}`;
+
+  // Parse as float to normalize Excel float representation:
+  // "1.1000000000000001" → 1.1, "17.16" → 17.16
+  const num = parseFloat(cleaned);
+  if (!isNaN(num)) {
+    // toFixed(2) then parseFloat to remove trailing zeros: 1.10 → 1.1, 17.16 → 17.16
+    return String(parseFloat(num.toFixed(2)));
   }
+
   return cleaned;
 }
 
@@ -153,7 +171,7 @@ function findTargetRows(
   sheetXml: string,
   sharedStrings: string[],
   startRow = 9,
-  endRow = 80
+  endRow = 200
 ): Array<{ row: number; targetId: string }> {
   const results: Array<{ row: number; targetId: string }> = [];
 
@@ -176,16 +194,23 @@ function findTargetRows(
 // ===== FILL TARGET ROW =====
 
 function fillTargetRow(sheetXml: string, cible: Record<string, string>, row: number): string {
-  if (cible.info_additionnelle) {
-    sheetXml = setCellInXml(sheetXml, `E${row}`, cible.info_additionnelle);
-  }
-
+  // Columns F/G/H: evaluation marker (1 in the matching column)
   if (cible.evaluation === "positif") {
     sheetXml = setCellInXml(sheetXml, `F${row}`, 1);
   } else if (cible.evaluation === "neutre") {
     sheetXml = setCellInXml(sheetXml, `G${row}`, 1);
   } else if (cible.evaluation === "negatif") {
     sheetXml = setCellInXml(sheetXml, `H${row}`, 1);
+  }
+
+  // Column K: justification (main AI explanation)
+  if (cible.justification) {
+    sheetXml = setCellInXml(sheetXml, `K${row}`, cible.justification);
+  }
+
+  // Column L: additional info
+  if (cible.info_additionnelle) {
+    sheetXml = setCellInXml(sheetXml, `L${row}`, cible.info_additionnelle);
   }
 
   return sheetXml;
@@ -272,9 +297,6 @@ export async function fillOddExcelTemplate(
   } else {
     console.warn("[odd-excel] Feuille INDICATEURS non trouvée, ignorée");
   }
-
-  // Remove calcChain.xml to avoid inconsistencies — Excel will recalculate automatically
-  zip.remove("xl/calcChain.xml");
 
   console.log(`[odd-excel] ✅ Template rempli pour "${enterpriseName}"`);
   return await zip.generateAsync({

@@ -243,9 +243,21 @@ export default function EntrepreneurDashboard() {
         // Skip if deliverable already exists with rich data (unless force=true)
         const existing = deliverables.find(d => d.type === step.type);
         if (!force && existing?.data && typeof existing.data === 'object' && Object.keys(existing.data as object).length > 0) {
-          completed++;
-          if (existing.score) scores.push(existing.score);
-          continue;
+          // For ODD: force regen if data is in legacy format (no target_matrix_version)
+          if (step.type === 'odd_analysis') {
+            const meta = (existing.data as Record<string, unknown>).metadata as Record<string, unknown> | undefined;
+            if (meta?.target_matrix_version !== 'v2_template_aligned') {
+              // Legacy ODD data — do not skip, regenerate
+            } else {
+              completed++;
+              if (existing.score) scores.push(existing.score);
+              continue;
+            }
+          } else {
+            completed++;
+            if (existing.score) scores.push(existing.score);
+            continue;
+          }
         }
 
         try {

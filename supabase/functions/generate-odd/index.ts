@@ -45,6 +45,7 @@ JSON à produire :
     "secteur": "${sector}",
     "date_generation": "${new Date().toISOString().split('T')[0]}",
     "version": 1,
+    "target_matrix_version": "v2_template_aligned",
     "livrables_utilises": ["bmc", "sic"],
     "total_cibles_evaluees": 40
   },
