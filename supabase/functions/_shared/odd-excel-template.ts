@@ -1,4 +1,4 @@
-import JSZip from "npm:jszip@3";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 // ===== XML HELPERS =====
 
