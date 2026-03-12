@@ -512,11 +512,11 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
       const ym1Derived = Math.round(cy / (1 + g));
       const ym2Derived = Math.round(ym1Derived / (1 + g));
 
-      // Only overwrite if AI value is zero OR deviates more than 50% from derived value
+      // Only overwrite if AI value is zero OR deviates more than 25% from derived value
       const overwriteYm1 = !s.year_minus_1 || s.year_minus_1 <= 0 ||
-        Math.abs(toNumber(s.year_minus_1) - ym1Derived) / ym1Derived > 0.50;
+        Math.abs(toNumber(s.year_minus_1) - ym1Derived) / ym1Derived > 0.25;
       const overwriteYm2 = !s.year_minus_2 || s.year_minus_2 <= 0 ||
-        Math.abs(toNumber(s.year_minus_2) - ym2Derived) / ym2Derived > 0.50;
+        Math.abs(toNumber(s.year_minus_2) - ym2Derived) / ym2Derived > 0.25;
 
       if (overwriteYm1) s.year_minus_1 = ym1Derived;
       if (overwriteYm2) s.year_minus_2 = ym2Derived;
