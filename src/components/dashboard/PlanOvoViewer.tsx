@@ -199,9 +199,10 @@ export default function PlanOvoViewer({ data }: { data: any }) {
   const vanStatus = (v: number | null) => v == null ? 'neutral' as const : v > 0 ? 'good' as const : v > -1e6 ? 'warning' as const : 'bad' as const;
   const triStatus = (v: number | null) => v == null ? 'neutral' as const : v > 15 ? 'good' as const : v > 8 ? 'warning' as const : 'bad' as const;
   const cagrStatus = (v: number | null) => v == null ? 'neutral' as const : v > 20 ? 'good' as const : v > 10 ? 'warning' as const : 'bad' as const;
-  const roiStatus = (v: number | null) => v == null ? 'neutral' as const : v > 50 ? 'good' as const : v > 20 ? 'warning' as const : 'bad' as const;
+  const roiStatus = (v: number | null) => v == null ? 'neutral' as const : v > 30 ? 'good' as const : v > 10 ? 'warning' as const : 'bad' as const;
   const paybackStatus = (v: number | null) => v == null ? 'neutral' as const : v <= 3 ? 'good' as const : v <= 5 ? 'warning' as const : 'bad' as const;
   const dscrStatus = (v: number | null) => v == null ? 'neutral' as const : v > 1.5 ? 'good' as const : v > 1 ? 'warning' as const : 'bad' as const;
+  const multipleEbitdaStatus = (v: number | null) => v == null ? 'neutral' as const : v >= 5 ? 'good' as const : v >= 3 ? 'warning' as const : 'bad' as const;
 
   const fmtMetric = (v: number | null, suffix = '') => v == null ? '—' : `${v.toFixed(1)}${suffix}`;
 
