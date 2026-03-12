@@ -357,6 +357,29 @@ Deno.serve(async (req: Request) => {
     const cellWrites = buildCellWrites(financialJson);
     console.log(`[generate-ovo-plan] ${cellWrites.length} cells to write`);
 
+    // Fix #5: Post-build revenue verification
+    const { verified, gaps } = verifyExcelRevenue(financialJson, data.framework_data);
+    if (!verified) {
+      console.warn(`[generate-ovo-plan] Revenue verification FAILED — gaps: ${JSON.stringify(gaps)}`);
+      // If critical gaps (>10%), trigger corrective re-scaling
+      const criticalGaps = Object.values(gaps).filter(g => g.ecart > 10);
+      if (criticalGaps.length > 0) {
+        console.log("[generate-ovo-plan] Critical gaps detected, re-scaling and rebuilding cells...");
+        scaleToFrameworkTargets(financialJson, data.framework_data, undefined, data.inputs_data);
+        const correctedWrites = buildCellWrites(financialJson);
+        const { verified: v2 } = verifyExcelRevenue(financialJson, data.framework_data);
+        if (v2) {
+          console.log("[generate-ovo-plan] Corrective re-scaling successful");
+          cellWrites.length = 0;
+          cellWrites.push(...correctedWrites);
+        } else {
+          console.warn("[generate-ovo-plan] Corrective re-scaling still has gaps — proceeding with best effort");
+        }
+      }
+    } else {
+      console.log("[generate-ovo-plan] Revenue verification PASSED ✓");
+    }
+
     // ── Étape 4 : Injecter les valeurs dans le ZIP ─────────────────────
     console.log("[generate-ovo-plan] Injecting values into Excel...");
     const filledBuffer = await injectIntoXlsm(templateBuffer, cellWrites, SHEET_FILES);
