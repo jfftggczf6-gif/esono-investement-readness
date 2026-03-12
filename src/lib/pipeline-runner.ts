@@ -111,7 +111,11 @@ export async function runPipelineFromClient(
       let rich = false;
       if (d.data && typeof d.data === 'object') {
         if (d.type === 'inputs_data') rich = d.data.compte_resultat && toNumber(d.data.compte_resultat.chiffre_affaires) > 0;
-        else if (d.type === 'odd_analysis') rich = d.data.evaluation_cibles_odd || d.data.synthese;
+        else if (d.type === 'odd_analysis') {
+          // Check for v2 template alignment — legacy data must be regenerated
+          const hasV2 = d.data.metadata?.target_matrix_version === 'v2_template_aligned';
+          rich = hasV2 && (d.data.evaluation_cibles_odd || d.data.synthese);
+        }
         else if (d.type === 'plan_ovo') rich = !!d.data.scenarios;
         else rich = d.data.canvas || d.data.theorie_changement || d.data.compte_resultat || d.data.ratios || d.data.diagnostic_par_dimension || d.data.scenarios || d.data.checklist;
       }
