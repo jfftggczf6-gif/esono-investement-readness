@@ -725,15 +725,31 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
   // Adjust OPEX proportionally so that total_opex = gross_profit - ebitda
   if (data.opex) {
     const opexFields = ['staff_salaries', 'marketing', 'office_costs', 'travel', 'insurance', 'maintenance', 'third_parties', 'other'];
+    const { is: tauxISOpex } = getFiscalParams(country || "Côte d'Ivoire");
     for (const yk of PROJ_KEYS) {
       const targetOpex = data.gross_profit[yk] - data.ebitda[yk];
       const currentOpex = opexFields.reduce((sum, f) => sum + (data.opex[f]?.[yk] || 0), 0);
       if (currentOpex > 0 && targetOpex > 0) {
         const ratio = targetOpex / currentOpex;
-        for (const f of opexFields) {
-          if (data.opex[f]) {
-            data.opex[f][yk] = Math.round(data.opex[f][yk] * ratio);
+        if (ratio >= 0.4 && ratio <= 2.5) {
+          // Normal adjustment: scale OPEX to match EBITDA
+          for (const f of opexFields) {
+            if (data.opex[f]) {
+              data.opex[f][yk] = Math.round(data.opex[f][yk] * ratio);
+            }
           }
+        } else {
+          // Ratio too extreme — derive EBITDA from actual OPEX (correct cascade direction)
+          console.warn(`[enforceFramework] OPEX ratio=${ratio.toFixed(2)} for ${yk} out of bounds [0.4, 2.5] — deriving EBITDA from OPEX`);
+          data.ebitda[yk] = Math.round(data.gross_profit[yk] - currentOpex);
+          data.ebitda_margin_pct[yk] = data.revenue[yk] > 0
+            ? (data.ebitda[yk] / data.revenue[yk]) * 100 : 0;
+          // Cascade: net_profit cannot exceed EBITDA
+          if (data.net_profit[yk] > data.ebitda[yk]) {
+            data.net_profit[yk] = Math.round(data.ebitda[yk] * (1 - tauxISOpex / 100));
+          }
+          // Cascade: cashflow ≈ EBITDA × (1 - IS%)
+          data.cashflow[yk] = Math.round(data.ebitda[yk] * (1 - tauxISOpex / 100));
         }
       }
     }
