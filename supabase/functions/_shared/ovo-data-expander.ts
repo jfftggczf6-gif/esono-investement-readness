@@ -42,14 +42,7 @@ export function scaleToFrameworkTargets(json: Record<string, any>, frameworkData
     "YEAR2": "year2", "YEAR3": "year3", "YEAR4": "year4", "YEAR5": "year5", "YEAR6": "year6",
   };
 
-  const poRevenue = (planOvoData as any)?.revenue;
-  if (poRevenue && typeof poRevenue === 'object') {
-    for (const [yearLabel, jsonKey] of Object.entries(yearLabelToJsonKey)) {
-      const val = Number(poRevenue[jsonKey]);
-      if (val > 0) targets[yearLabel] = val;
-    }
-  }
-
+  // Framework is the source of truth for projection years (YEAR2-YEAR6)
   const fw = frameworkData as any;
   if (fw?.projection_5ans?.lignes && Array.isArray(fw.projection_5ans.lignes)) {
     const caLine = fw.projection_5ans.lignes.find((l: any) => {
@@ -61,11 +54,23 @@ export function scaleToFrameworkTargets(json: Record<string, any>, frameworkData
         "YEAR2": "an1", "YEAR3": "an2", "YEAR4": "an3", "YEAR5": "an4", "YEAR6": "an5",
       };
       for (const [yearLabel, fwKey] of Object.entries(fwMapping)) {
-        if (!targets[yearLabel]) {
-          const raw = caLine[fwKey];
-          const val = typeof raw === 'number' ? raw : parseFcfaValue(String(raw || ''));
-          if (val > 0) targets[yearLabel] = val;
-        }
+        const raw = caLine[fwKey];
+        const val = typeof raw === 'number' ? raw : parseFcfaValue(String(raw || ''));
+        if (val > 0) targets[yearLabel] = val;
+      }
+    }
+  }
+
+  // plan_ovo revenue used only as fallback for historical years not covered by Framework
+  const poRevenue = (planOvoData as any)?.revenue;
+  if (poRevenue && typeof poRevenue === 'object') {
+    const historicalKeys: Array<[string, string]> = [
+      ["YEAR-2", "year_minus_2"], ["YEAR-1", "year_minus_1"], ["CURRENT YEAR", "current_year"],
+    ];
+    for (const [yearLabel, jsonKey] of historicalKeys) {
+      if (!targets[yearLabel]) {
+        const val = Number(poRevenue[jsonKey]);
+        if (val > 0) targets[yearLabel] = val;
       }
     }
   }
@@ -93,7 +98,7 @@ export function scaleToFrameworkTargets(json: Record<string, any>, frameworkData
       const yr = item.per_year.find((y: any) => y.year === yearLabel);
       if (!yr) continue;
       const price = yr.unit_price_r1 || yr.unit_price_r2 || yr.unit_price_r3 || 0;
-      const totalVol = (yr.volume_h1 || 0) + (yr.volume_h2 || 0);
+      const totalVol = (yr.volume_h1 || 0) + (yr.volume_h2 || 0) + (yr.volume_q3 || 0) + (yr.volume_q4 || 0);
       revenueExcel += totalVol * price;
     }
 
@@ -111,6 +116,8 @@ export function scaleToFrameworkTargets(json: Record<string, any>, frameworkData
       if (!yr) continue;
       yr.volume_h1 = Math.round((yr.volume_h1 || 0) * ratio);
       yr.volume_h2 = Math.round((yr.volume_h2 || 0) * ratio);
+      yr.volume_q3 = Math.round((yr.volume_q3 || 0) * ratio);
+      yr.volume_q4 = Math.round((yr.volume_q4 || 0) * ratio);
     }
   }
 }
@@ -178,12 +185,17 @@ function expandProductOrService(p: any): any {
     while (existing.length < 8) {
       const idx = existing.length;
       const prevEntry = existing[existing.length - 1];
-      const totalVol = (prevEntry.volume_h1 || 0) + (prevEntry.volume_h2 || 0);
+      const totalVol = (prevEntry.volume_h1 || 0) + (prevEntry.volume_h2 || 0) + (prevEntry.volume_q3 || 0) + (prevEntry.volume_q4 || 0);
       const newVol = Math.round(totalVol * (1 + g));
       const newEntry = { ...prevEntry };
       newEntry.year = yearLabels[idx];
-      newEntry.volume_h1 = Math.round(newVol * 0.45);
-      newEntry.volume_h2 = Math.round(newVol * 0.55);
+      const nq1 = Math.round(newVol * 0.22);
+      const nq2 = Math.round(newVol * 0.25);
+      const nq3 = Math.round(newVol * 0.27);
+      newEntry.volume_h1 = nq1;
+      newEntry.volume_h2 = nq2;
+      newEntry.volume_q3 = nq3;
+      newEntry.volume_q4 = newVol - nq1 - nq2 - nq3;
       for (const k of ['unit_price_r1', 'unit_price_r2', 'unit_price_r3']) {
         if (newEntry[k]) newEntry[k] = Math.round(newEntry[k] * (1 + pg) / 1000) * 1000;
       }
@@ -233,8 +245,10 @@ function expandProductOrService(p: any): any {
   const per_year = yearConfigs.map(yc => {
     const price = Math.round(priceCY * yc.pMul / 1000) * 1000;
     const cogs = Math.round(price * cogsRate / 1000) * 1000;
-    const vol_h1 = Math.round(yc.volume * 0.45);
-    const vol_h2 = Math.round(yc.volume * 0.55);
+    const q1 = Math.round(yc.volume * 0.22);
+    const q2 = Math.round(yc.volume * 0.25);
+    const q3 = Math.round(yc.volume * 0.27);
+    const q4 = yc.volume - q1 - q2 - q3; // remainder to avoid rounding drift
 
     return {
       year: yc.year,
@@ -243,7 +257,7 @@ function expandProductOrService(p: any): any {
       cogs_r1: rf[0] ? cogs : 0, cogs_r2: rf[1] ? cogs : 0, cogs_r3: rf[2] ? cogs : 0,
       mix_r1_ch1: rf[0] ? mixCh1 : 0, mix_r2_ch1: rf[1] ? mixCh1 : 0, mix_r3_ch1: rf[2] ? mixCh1 : 0,
       mix_r1_ch2: rf[0] ? mixCh2 : 0, mix_r2_ch2: rf[1] ? mixCh2 : 0, mix_r3_ch2: rf[2] ? mixCh2 : 0,
-      volume_h1: vol_h1, volume_h2: vol_h2, volume_q3: 0, volume_q4: 0,
+      volume_h1: q1, volume_h2: q2, volume_q3: q3, volume_q4: q4,
     };
   });
 
@@ -254,7 +268,7 @@ function expandProductOrService(p: any): any {
 function repairPerYearVolumes(perYear: any[], growthRate: number): any[] {
   if (!perYear || perYear.length < 3) return perYear;
   const cyEntry = perYear.find((e: any) => e.year === "CURRENT YEAR") || perYear[2];
-  const cyVolume = (cyEntry?.volume_h1 || 0) + (cyEntry?.volume_h2 || 0);
+  const cyVolume = (cyEntry?.volume_h1 || 0) + (cyEntry?.volume_h2 || 0) + (cyEntry?.volume_q3 || 0) + (cyEntry?.volume_q4 || 0);
   if (cyVolume === 0) return perYear;
 
   const g = growthRate || 0.15;
@@ -262,13 +276,18 @@ function repairPerYearVolumes(perYear: any[], growthRate: number): any[] {
 
   for (let i = 3; i < perYear.length && i < 8; i++) {
     const entry = perYear[i];
-    const vol = (entry.volume_h1 || 0) + (entry.volume_h2 || 0);
+    const vol = (entry.volume_h1 || 0) + (entry.volume_h2 || 0) + (entry.volume_q3 || 0) + (entry.volume_q4 || 0);
     if (vol > 0) {
       lastKnownVolume = vol;
     } else {
       const newVol = Math.round(lastKnownVolume * (1 + g));
-      entry.volume_h1 = Math.round(newVol * 0.45);
-      entry.volume_h2 = Math.round(newVol * 0.55);
+      const q1 = Math.round(newVol * 0.22);
+      const q2 = Math.round(newVol * 0.25);
+      const q3 = Math.round(newVol * 0.27);
+      entry.volume_h1 = q1;
+      entry.volume_h2 = q2;
+      entry.volume_q3 = q3;
+      entry.volume_q4 = newVol - q1 - q2 - q3;
       lastKnownVolume = newVol;
     }
   }
