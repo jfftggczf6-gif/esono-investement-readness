@@ -564,7 +564,7 @@ export function normalizePlanOvo(raw: any): any {
 
   // BUG 2 FIX: Validate EBITDA >= Net Profit (accounting invariant)
   for (const yk of YEAR_KEYS) {
-    if (d.net_profit[yk] > d.ebitda[yk]) {
+    if (d.net_profit[yk] >= d.ebitda[yk]) {
       // Net profit cannot exceed EBITDA; force net_profit = EBITDA * (1 - IS%)
       d.net_profit[yk] = Math.round(d.ebitda[yk] * 0.75); // ~25% IS default
       console.warn(`[normalizePlanOvo] net_profit > ebitda for ${yk}, corrected.`);
