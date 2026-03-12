@@ -921,23 +921,15 @@ export function enforceFrameworkConstraints(data: any, frameworkData: any, input
     if (data.investment_metrics.cagr_ebitda < 0.01 && ebY6 > ebCY * 1.5) {
       data.investment_metrics.cagr_ebitda = Math.round((Math.pow(ebY6 / ebCY, 1 / 5) - 1) * 10000) / 10000;
     }
-    // Guard: TRI negative but VAN positive → retry Newton-Raphson with different seed
-    if (data.investment_metrics.tri <= 0 && data.investment_metrics.van > 0) {
-      let irrRetry = 0.25;
-      for (let iter = 0; iter < 100; iter++) {
-        let npvR = -initialInv;
-        let dnpvR = 0;
-        for (let i = 0; i < 5; i++) {
-          const cf = data.cashflow[PROJ_KEYS[i]];
-          npvR += cf / Math.pow(1 + irrRetry, i + 1);
-          dnpvR -= (i + 1) * cf / Math.pow(1 + irrRetry, i + 2);
-        }
-        if (Math.abs(dnpvR) < 1e-10) break;
-        irrRetry = irrRetry - npvR / dnpvR;
-        if (isNaN(irrRetry) || irrRetry < -0.99 || irrRetry > 10) { irrRetry = 0; break; }
-        if (Math.abs(npvR) < 1000) break;
-      }
-      if (irrRetry > 0 && !isNaN(irrRetry)) data.investment_metrics.tri = Math.round(irrRetry * 10000) / 10000;
+    // Guard: TRI inconsistent (<=0 with positive VAN, or suspiciously low vs high ROI/VAN)
+    const triSeemsInconsistent = (
+      (data.investment_metrics.tri <= 0 && data.investment_metrics.van > 0) ||
+      (data.investment_metrics.tri > 0 && data.investment_metrics.tri < 0.10 && data.investment_metrics.van > initialInv * 2 && data.investment_metrics.roi > 0.5)
+    );
+    if (triSeemsInconsistent) {
+      console.warn(`[enforceFramework] TRI=${data.investment_metrics.tri} seems inconsistent with VAN=${data.investment_metrics.van}, ROI=${data.investment_metrics.roi} — recomputing via bisection`);
+      const cfRetry = PROJ_KEYS.map(yk => data.cashflow[yk]);
+      data.investment_metrics.tri = Math.round(computeIRR(cfRetry, initialInv) * 10000) / 10000;
     }
     // Guard: payback 0 but funding needed
     if (data.investment_metrics.payback_years === 0 && initialInv > 0) {
