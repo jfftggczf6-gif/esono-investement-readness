@@ -345,6 +345,25 @@ export async function saveDeliverable(supabase: any, enterprise_id: string, type
     .update({ status: "completed", progress: 100, data })
     .eq("enterprise_id", enterprise_id)
     .eq("module", moduleCode);
+
+  // Recalculate and update global score_ir after each deliverable save
+  try {
+    const { data: allDeliverables } = await supabase
+      .from("deliverables")
+      .select("score")
+      .eq("enterprise_id", enterprise_id)
+      .not("score", "is", null)
+      .gt("score", 0);
+
+    if (allDeliverables && allDeliverables.length > 0) {
+      const scores = allDeliverables.map((d: any) => Number(d.score));
+      const globalScore = Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length);
+      await supabase.from("enterprises").update({ score_ir: globalScore }).eq("id", enterprise_id);
+    }
+  } catch (e) {
+    // Non-blocking — score update failure should not break deliverable save
+    console.warn("[saveDeliverable] score_ir update failed:", e);
+  }
 }
 
 // ===== UEMOA FISCAL PARAMETERS (SOURCE DE VÉRITÉ UNIQUE) =====
