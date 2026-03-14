@@ -16,6 +16,7 @@ import Livrables from "./pages/Livrables";
 import BmcModule from "./pages/modules/BmcModule";
 import GenericModule from "./pages/modules/GenericModule";
 import Templates from "./pages/Templates";
+import DataRoomPublic from "./pages/DataRoomPublic";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/module/:moduleCode" element={
               <ProtectedRoute><GenericModule /></ProtectedRoute>
             } />
+            <Route path="/dataroom/:slug" element={<DataRoomPublic />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

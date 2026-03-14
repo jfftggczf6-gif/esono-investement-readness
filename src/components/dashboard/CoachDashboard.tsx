@@ -20,7 +20,8 @@ import {
   Users, Building2, CheckCircle2, TrendingUp,
   Plus, Download, Sparkles, Loader2, ArrowLeft, Eye, Lock,
   Share2, AlertCircle, FileCheck, UserPlus, Search, Trash2,
-  Upload, X, FileText, FileSpreadsheet, Stethoscope, LayoutGrid, Globe, Target
+  Upload, X, FileText, FileSpreadsheet, Stethoscope, LayoutGrid, Globe, Target,
+  FolderOpen, Presentation, Wand2,
 } from 'lucide-react';
 import {
   MODULE_CONFIG_COACH as MODULE_CONFIG, MODULE_CONFIG as MIRROR_MODULES, PIPELINE,
@@ -28,6 +29,7 @@ import {
 } from '@/lib/dashboard-config';
 import { getValidAccessToken } from '@/lib/getValidAccessToken';
 import { runPipelineFromClient } from '@/lib/pipeline-runner';
+import DataRoomManager from './DataRoomManager';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -36,6 +38,13 @@ const DELIV_MAP: Record<string, string> = {
   framework: 'framework_data', diagnostic: 'diagnostic_data',
   plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
   gap_analysis: 'gap_analysis', investment_memo: 'investment_memo',
+  pitch_deck: 'pitch_deck',
+};
+
+const MODE_LABELS: Record<string, { label: string; icon: string; color: string }> = {
+  assisted:        { label: 'Assisté',        icon: '📋', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  reconstruction:  { label: 'Reconstruction', icon: '🔧', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  due_diligence:   { label: 'Due Diligence',  icon: '📁', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
 };
 
 const SECTORS = [
@@ -65,7 +74,7 @@ function getPhaseLabel(phase: string) {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type View = 'list' | 'detail';
-type DetailTab = 'parcours' | 'mirror' | 'livrables';
+type DetailTab = 'parcours' | 'mirror' | 'livrables' | 'data_room';
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -813,11 +822,35 @@ export default function CoachDashboard() {
                 🎯 {ent.readiness_pathway}
               </Badge>
             )}
+            {(ent as any).operating_mode && (
+              <Badge variant="outline" className={`text-xs font-medium ${MODE_LABELS[(ent as any).operating_mode]?.color || ''}`}>
+                {MODE_LABELS[(ent as any).operating_mode]?.icon} {MODE_LABELS[(ent as any).operating_mode]?.label}
+              </Badge>
+            )}
             {(ent.score_ir || 0) > 0 && (
               <Badge variant="outline" className={`text-sm font-bold px-3 py-1 ${getScoreBg(ent.score_ir)}`}>
                 {ent.score_ir}/100
               </Badge>
             )}
+            {/* Mode selector for coach */}
+            <select
+              value={(ent as any).operating_mode || 'assisted'}
+              onChange={async (e) => {
+                const newMode = e.target.value;
+                const dataRoomEnabled = newMode === 'due_diligence';
+                await supabase.from('enterprises').update({
+                  operating_mode: newMode as any,
+                  data_room_enabled: dataRoomEnabled,
+                }).eq('id', ent.id);
+                setSelectedEnt({ ...ent, operating_mode: newMode as any, data_room_enabled: dataRoomEnabled } as any);
+                toast.success('Mode mis à jour');
+              }}
+              className="border border-border rounded-lg px-2 py-1 text-xs bg-background text-foreground focus:outline-none"
+            >
+              <option value="assisted">📋 Assisté</option>
+              <option value="reconstruction">🔧 Reconstruction</option>
+              <option value="due_diligence">📁 Due Diligence</option>
+            </select>
             <Button variant="outline" size="sm" onClick={() => handleDownloadReport(ent)} disabled={generatingReport === ent.id}>
               {generatingReport === ent.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />} Rapport IA
             </Button>
@@ -825,11 +858,12 @@ export default function CoachDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-border mb-6 gap-1">
+        <div className="flex border-b border-border mb-6 gap-1 flex-wrap">
           {([
             { key: 'parcours' as DetailTab, label: '📤 Parcours Rapide', desc: 'Espace privé coach' },
             { key: 'mirror' as DetailTab, label: '👁 Vue Entrepreneur', desc: 'Espace partagé' },
             { key: 'livrables' as DetailTab, label: '📁 Livrables', desc: `${entDelivs.length} générés` },
+            ...((ent as any).data_room_enabled ? [{ key: 'data_room' as DetailTab, label: '🗂 Data Room', desc: 'Documents investisseurs' }] : []),
           ]).map(tab => (
             <button
               key={tab.key}
@@ -1415,6 +1449,24 @@ export default function CoachDashboard() {
             )}
           </div>
         )}
+
+        {/* ═══ TAB: DATA ROOM ═══ */}
+        {detailTab === 'data_room' && (ent as any).data_room_enabled && (
+          <DataRoomManager
+            enterpriseId={ent.id}
+            enterpriseName={ent.name}
+            enterpriseSlug={(ent as any).data_room_slug}
+          />
+        )}
+        {detailTab === 'data_room' && !(ent as any).data_room_enabled && (
+          <Card>
+            <CardContent className="py-16 text-center text-muted-foreground">
+              <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Data Room non activée</p>
+              <p className="text-sm mt-1">Changez le mode de l'entreprise en "Due Diligence" pour activer la Data Room.</p>
+            </CardContent>
+          </Card>
+        )}
       </DashboardLayout>
     );
   }
@@ -1535,9 +1587,16 @@ export default function CoachDashboard() {
                   )}
                 </div>
                 <div className="col-span-1 hidden sm:block">
-                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ color: phase.color, background: `${phase.color}15` }}>
-                    {phase.label}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ color: phase.color, background: `${phase.color}15` }}>
+                      {phase.label}
+                    </span>
+                    {(ent as any).operating_mode && (ent as any).operating_mode !== 'assisted' && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${MODE_LABELS[(ent as any).operating_mode]?.color || ''}`}>
+                        {MODE_LABELS[(ent as any).operating_mode]?.icon} {MODE_LABELS[(ent as any).operating_mode]?.label}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="col-span-3 flex items-center justify-end gap-1.5">
                   <Button

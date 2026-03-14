@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          id: string
+          enterprise_id: string
+          actor_id: string | null
+          actor_role: string | null
+          action: string
+          resource_type: string | null
+          resource_id: string | null
+          deliverable_type: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          enterprise_id: string
+          actor_id?: string | null
+          actor_role?: string | null
+          action: string
+          resource_type?: string | null
+          resource_id?: string | null
+          deliverable_type?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          enterprise_id?: string
+          actor_id?: string | null
+          actor_role?: string | null
+          action?: string
+          resource_type?: string | null
+          resource_id?: string | null
+          deliverable_type?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
       coach_uploads: {
         Row: {
           category: string
@@ -48,6 +87,106 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "coach_uploads_enterprise_id_fkey"
+            columns: ["enterprise_id"]
+            isOneToOne: false
+            referencedRelation: "enterprises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_room_documents: {
+        Row: {
+          id: string
+          enterprise_id: string
+          category: string
+          label: string
+          filename: string
+          storage_path: string
+          file_size: number | null
+          evidence_level: number
+          is_generated: boolean
+          deliverable_type: string | null
+          uploaded_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          enterprise_id: string
+          category: string
+          label: string
+          filename: string
+          storage_path: string
+          file_size?: number | null
+          evidence_level?: number
+          is_generated?: boolean
+          deliverable_type?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          enterprise_id?: string
+          category?: string
+          label?: string
+          filename?: string
+          storage_path?: string
+          file_size?: number | null
+          evidence_level?: number
+          is_generated?: boolean
+          deliverable_type?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_room_documents_enterprise_id_fkey"
+            columns: ["enterprise_id"]
+            isOneToOne: false
+            referencedRelation: "enterprises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_room_shares: {
+        Row: {
+          id: string
+          enterprise_id: string
+          investor_email: string | null
+          investor_name: string | null
+          access_token: string
+          expires_at: string | null
+          can_download: boolean
+          viewed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          enterprise_id: string
+          investor_email?: string | null
+          investor_name?: string | null
+          access_token?: string
+          expires_at?: string | null
+          can_download?: boolean
+          viewed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          enterprise_id?: string
+          investor_email?: string | null
+          investor_name?: string | null
+          access_token?: string
+          expires_at?: string | null
+          can_download?: boolean
+          viewed_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_room_shares_enterprise_id_fkey"
             columns: ["enterprise_id"]
             isOneToOne: false
             referencedRelation: "enterprises"
@@ -187,6 +326,9 @@ export type Database = {
           updated_at: string
           uploaded_files: Json | null
           user_id: string
+          operating_mode: Database["public"]["Enums"]["operating_mode"] | null
+          data_room_enabled: boolean | null
+          data_room_slug: string | null
         }
         Insert: {
           city?: string | null
@@ -216,6 +358,9 @@ export type Database = {
           updated_at?: string
           uploaded_files?: Json | null
           user_id: string
+          operating_mode?: Database["public"]["Enums"]["operating_mode"] | null
+          data_room_enabled?: boolean | null
+          data_room_slug?: string | null
         }
         Update: {
           city?: string | null
@@ -239,6 +384,15 @@ export type Database = {
           updated_at?: string
           uploaded_files?: Json | null
           user_id?: string
+          operating_mode?: Database["public"]["Enums"]["operating_mode"] | null
+          data_room_enabled?: boolean | null
+          data_room_slug?: string | null
+          gap_score_commercial?: number | null
+          gap_score_corporate?: number | null
+          gap_score_esg?: number | null
+          gap_score_finance?: number | null
+          gap_score_legal?: number | null
+          readiness_pathway?: string | null
         }
         Relationships: []
       }
@@ -407,6 +561,7 @@ export type Database = {
         | "gap_analysis"
         | "investment_memo"
         | "onepager"
+        | "pitch_deck"
       module_code:
         | "bmc"
         | "sic"
@@ -418,7 +573,10 @@ export type Database = {
         | "odd"
         | "gap_analysis"
         | "investment_memo"
+        | "pitch_deck"
+        | "data_room"
       module_status: "not_started" | "in_progress" | "completed"
+      operating_mode: "assisted" | "reconstruction" | "due_diligence"
     }
     CompositeTypes: {
       [_ in never]: never

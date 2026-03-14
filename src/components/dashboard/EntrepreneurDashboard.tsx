@@ -21,6 +21,8 @@ import BmcViewer from './BmcViewer';
 import SicViewer from './SicViewer';
 import DeliverableViewer from './DeliverableViewer';
 import BusinessPlanPreview from './BusinessPlanPreview';
+import ModeSelectionModal from './ModeSelectionModal';
+import DataRoomManager from './DataRoomManager';
 import {
   MODULE_CONFIG, PIPELINE, MODULE_FN_MAP,
   type Enterprise, type Deliverable, type EnterpriseModule, type UploadedFile,
@@ -46,6 +48,8 @@ export default function EntrepreneurDashboard() {
   const [newLegalForm, setNewLegalForm] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const [showModeModal, setShowModeModal] = useState(false);
+  const [pendingEnterpriseId, setPendingEnterpriseId] = useState<string | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingModule, setGeneratingModule] = useState<string | null>(null);
@@ -352,6 +356,9 @@ export default function EntrepreneurDashboard() {
       toast.success('Entreprise créée !');
       setShowCreate(false);
       setNewName('');
+      // Show mode selection after creation
+      setPendingEnterpriseId(data.id);
+      setShowModeModal(true);
       fetchData();
     } catch (err: any) {
       toast.error(err.message);
@@ -812,7 +819,7 @@ export default function EntrepreneurDashboard() {
   const delivTypeMap: Record<string, string> = {
     bmc: 'bmc_analysis', sic: 'sic_analysis', inputs: 'inputs_data', framework: 'framework_data',
     diagnostic: 'diagnostic_data', plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
-    gap_analysis: 'gap_analysis', investment_memo: 'investment_memo',
+    gap_analysis: 'gap_analysis', investment_memo: 'investment_memo', pitch_deck: 'pitch_deck',
   };
   const selectedDelivType = delivTypeMap[selectedModule];
   const selectedDeliv = selectedDelivType ? getDeliverable(selectedDelivType) : null;
@@ -917,6 +924,11 @@ export default function EntrepreneurDashboard() {
           {enterprise?.readiness_pathway && (
             <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 text-[10px] font-medium border border-blue-400/20 truncate max-w-[200px]" title={enterprise.readiness_pathway}>
               🎯 {enterprise.readiness_pathway}
+            </span>
+          )}
+          {enterprise?.operating_mode && enterprise.operating_mode !== 'assisted' && (
+            <span className="px-2 py-0.5 rounded bg-white/10 text-white/70 text-[10px] font-medium border border-white/10">
+              {enterprise.operating_mode === 'reconstruction' ? '🔧 Reconstruction' : '📁 Due Diligence'}
             </span>
           )}
           {scoreHistory.length > 1 && (
@@ -1362,6 +1374,41 @@ export default function EntrepreneurDashboard() {
               </div>
             )}
 
+            {/* Download bar for Pitch Deck module */}
+            {selectedModule === 'pitch_deck' && selectedDeliv?.data && (
+              <div className="mx-6 mt-4 mb-2 rounded-xl border border-pink-200 bg-gradient-to-r from-pink-50 to-rose-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-pink-100 flex items-center justify-center">
+                      <span className="text-lg">🎯</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-pink-900">Pitch Deck Investisseur</p>
+                      <p className="text-xs text-pink-600">Présentation 12 slides pour comités d'investissement</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedDeliv.data?.pitch_html && (
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([selectedDeliv.data.pitch_html], { type: 'text/html' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `pitch-deck-${enterprise?.name || 'entreprise'}.html`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 transition-colors shadow-sm"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Pitch Deck HTML
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {selectedDeliv?.data && typeof selectedDeliv.data === 'object' ? (
               <div className="p-6">
                 {selectedModule === 'bmc' ? (
@@ -1484,6 +1531,35 @@ export default function EntrepreneurDashboard() {
           </Button>
         )}
       </div>
+
+      {/* ===== MODE SELECTION MODAL (after enterprise creation) ===== */}
+      <ModeSelectionModal
+        open={showModeModal}
+        onSelect={async (mode) => {
+          setShowModeModal(false);
+          if (pendingEnterpriseId) {
+            await supabase.from('enterprises').update({
+              operating_mode: mode,
+              data_room_enabled: mode === 'due_diligence',
+            }).eq('id', pendingEnterpriseId);
+            setPendingEnterpriseId(null);
+            fetchData();
+          }
+        }}
+      />
+
+      {/* ===== DATA ROOM TAB (rendered in main area when selectedModule = 'data_room') ===== */}
+      {selectedModule === 'data_room' && enterprise && (
+        <div className="absolute inset-0 bg-background overflow-y-auto z-10">
+          <div className="p-6">
+            <DataRoomManager
+              enterpriseId={enterprise.id}
+              enterpriseName={enterprise.name}
+              enterpriseSlug={enterprise.data_room_slug}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ===== NON-BLOCKING GENERATION PROGRESS BANNER ===== */}
       {generating && generationProgress && (
