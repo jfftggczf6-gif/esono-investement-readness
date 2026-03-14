@@ -4,7 +4,8 @@ import { Navigate } from 'react-router-dom';
 import {
   Loader2, LogIn, Rocket, GraduationCap, CheckCircle2, ArrowRight,
   Upload, Sparkles, Users, LayoutGrid, Globe,
-  BarChart3, Stethoscope, ListChecks, FileText, Target, ChevronRight
+  BarChart3, Stethoscope, ListChecks, FileText, Target, ChevronRight,
+  Search, Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -16,6 +17,8 @@ const MODULES = [
   { step: 5, code: 'plan_ovo', title: 'Plan Financier Final', desc: 'Projections 3 scénarios sur 5 ans', icon: ListChecks, deliverables: ['HTML', 'Excel (XLSX)'] },
   { step: 6, code: 'business_plan', title: 'Business Plan', desc: 'Document complet max 20 pages', icon: FileText, deliverables: ['HTML', 'JSON', 'DOCX'] },
   { step: 7, code: 'odd', title: 'ODD', desc: 'Évaluation investment readiness — 17 ODD', icon: Target, deliverables: ['HTML', 'JSON', 'Excel (XLSX)'] },
+  { step: 8, code: 'gap_analysis', title: 'Analyse des Écarts', desc: 'Complétude documentaire et niveaux de preuve N0–N3', icon: Search, deliverables: ['HTML', 'JSON'] },
+  { step: 9, code: 'investment_memo', title: 'Mémo & One-Pager', desc: 'Mémo d\'investissement + teaser pour les fonds', icon: Briefcase, deliverables: ['HTML Mémo', 'HTML One-Pager', 'JSON'] },
 ];
 
 export default function Index() {
@@ -59,7 +62,7 @@ export default function Index() {
             Préparez votre PME africaine à <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(215,60%,55%)] to-[hsl(152,56%,45%)]">l'investissement</span>
           </h1>
           <p className="text-base md:text-lg text-white/50 mt-5 max-w-xl leading-relaxed">
-            7 modules séquentiels — du Diagnostic Expert au dossier investisseur complet.
+            9 modules séquentiels — du Diagnostic Expert au dossier investisseur complet.
             IA + coaching humain pour les PME africaines.
           </p>
           <div className="flex flex-wrap gap-3 mt-8">
@@ -120,7 +123,7 @@ export default function Index() {
       <section className="container py-16">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Architecture</p>
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">7 Modules Séquentiels</h2>
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">9 Modules Séquentiels</h2>
           <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
             Du diagnostic initial au dossier investisseur complet — chaque module alimente le suivant.
           </p>
@@ -147,11 +150,11 @@ export default function Index() {
               iconBg="bg-primary/10"
               iconColor="text-primary"
               title="Espace Entrepreneur"
-              desc="Uploadez vos documents, complétez les 7 modules et générez votre dossier investisseur complet."
+              desc="Uploadez vos documents, complétez les 9 modules et générez votre dossier investisseur complet."
               features={[
                 'Diagnostic expert, Business Model Canvas, Social Impact Canvas',
-                'Génération IA : Framework, Plan OVO, Business Plan, ODD',
-                '7+ livrables téléchargeables (Excel, HTML, DOCX)',
+                'Génération IA : Framework, Plan OVO, Business Plan, ODD, Gap Analysis',
+                '10+ livrables téléchargeables (Excel, HTML, DOCX)',
               ]}
               linkTo="/register?role=entrepreneur"
               linkLabel="Créer mon compte entrepreneur"
@@ -179,8 +182,8 @@ export default function Index() {
         <div className="container py-10">
           <div className="flex flex-wrap justify-center gap-12 text-center">
             {[
-              { value: '7', unit: 'modules', label: 'Parcours complet' },
-              { value: '7+', unit: 'livrables', label: 'Excel, HTML, DOCX' },
+              { value: '9', unit: 'modules', label: 'Parcours complet' },
+              { value: '10+', unit: 'livrables', label: 'Excel, HTML, DOCX' },
               { value: 'IA', unit: '+ Coach', label: 'Double validation' },
               { value: 'Afrique', unit: '', label: 'PME africaines' },
             ].map(stat => (
