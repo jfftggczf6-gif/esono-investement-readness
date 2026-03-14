@@ -41,7 +41,8 @@ export const MODULE_CONFIG_COACH = [
   { code: 'business_plan', title: 'Business Plan',               icon: FileText,        color: '#4338ca' },
   { code: 'odd',           title: 'Due Diligence ODD',           icon: Target,          color: '#0891b2' },
   { code: 'gap_analysis',    title: 'Analyse des Écarts',        icon: Search,    color: '#475569' },
-  { code: 'investment_memo', title: 'Mémo & One-Pager',          icon: Briefcase, color: '#1d4ed8' },
+  { code: 'investment_memo', title: 'Mémo Investisseur',          icon: Briefcase, color: '#1d4ed8' },
+  { code: 'onepager',        title: 'One-Pager Investisseur',    icon: FileText,  color: '#0891b2' },
 ];
 
 export const DELIVERABLE_CONFIG = [

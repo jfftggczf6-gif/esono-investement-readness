@@ -1,9 +1,7 @@
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Copy, ExternalLink, Download, FileText, Layout } from 'lucide-react';
+import { Copy, ExternalLink, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InvestmentMemoViewerProps {
@@ -11,14 +9,10 @@ interface InvestmentMemoViewerProps {
 }
 
 const InvestmentMemoViewer = ({ data }: InvestmentMemoViewerProps) => {
-  const [activeTab, setActiveTab] = useState('memo');
-
-  if (!data) return <div className="p-6 text-center text-gray-400">Aucune donnée disponible</div>;
+  if (!data) return <div className="p-6 text-center text-muted-foreground">Aucune donnée disponible</div>;
 
   const memo = data.memo || data;
-  const onepager = data.onepager || null;
   const memoHtml = data.memo_html || null;
-  const onepagerHtml = data.onepager_html || null;
   const score = data.score || memo?.score || 0;
   const metadata = data.metadata || {};
 
@@ -91,143 +85,71 @@ const InvestmentMemoViewer = ({ data }: InvestmentMemoViewerProps) => {
 
       {/* Metadata */}
       {metadata.generated_at && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Généré le {new Date(metadata.generated_at).toLocaleDateString('fr-FR')}
           {metadata.modules_used?.length > 0 && ` · ${metadata.modules_used.length} modules analysés`}
         </p>
       )}
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full">
-          <TabsTrigger value="memo" className="flex-1 flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Mémo d'investissement
-          </TabsTrigger>
-          <TabsTrigger value="onepager" className="flex-1 flex items-center gap-2" disabled={!onepager && !onepagerHtml}>
-            <Layout className="w-4 h-4" />
-            One-Pager
-          </TabsTrigger>
-        </TabsList>
+      {/* Actions */}
+      <div className="flex gap-2 flex-wrap">
+        <Button variant="outline" size="sm" onClick={() => handleCopy(memoHtml)} disabled={!memoHtml}>
+          <Copy className="w-4 h-4 mr-1" /> Copier HTML
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => handleOpenNewTab(memoHtml)} disabled={!memoHtml}>
+          <ExternalLink className="w-4 h-4 mr-1" /> Ouvrir
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => handleDownload(memoHtml, 'investment-memo.html')} disabled={!memoHtml}>
+          <Download className="w-4 h-4 mr-1" /> Télécharger
+        </Button>
+      </div>
 
-        {/* Investment Memo Tab */}
-        <TabsContent value="memo" className="space-y-3">
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => handleCopy(memoHtml)} disabled={!memoHtml}>
-              <Copy className="w-4 h-4 mr-1" /> Copier HTML
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleOpenNewTab(memoHtml)} disabled={!memoHtml}>
-              <ExternalLink className="w-4 h-4 mr-1" /> Ouvrir
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleDownload(memoHtml, 'investment-memo.html')} disabled={!memoHtml}>
-              <Download className="w-4 h-4 mr-1" /> Télécharger
-            </Button>
-          </div>
-
-          {memoHtml ? (
-            <div className="border rounded-lg overflow-hidden bg-white" style={{ height: '70vh' }}>
-              <iframe
-                srcDoc={memoHtml}
-                className="w-full h-full"
-                sandbox="allow-same-origin"
-                title="Mémo d'investissement"
-              />
-            </div>
-          ) : (
-            /* Fallback: render JSON data */
-            <div className="space-y-4">
-              {re.accroche && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Résumé exécutif</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="font-semibold text-gray-800">{re.accroche}</p>
-                    {re.opportunite && <p className="text-gray-600">{re.opportunite}</p>}
-                    {re.montant_recherche && (
-                      <p><span className="font-medium">Financement recherché :</span> {re.montant_recherche}</p>
-                    )}
-                    {(re.points_cles || []).length > 0 && (
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {re.points_cles.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                      </ul>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-              {rf.synthese && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Recommandation finale</CardTitle></CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600">{rf.synthese}</p>
-                    {(rf.conditions_prealables || []).length > 0 && (
-                      <div className="mt-3">
-                        <p className="font-medium text-sm mb-1">Conditions préalables :</p>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-amber-700">
-                          {rf.conditions_prealables.map((c: string, i: number) => <li key={i}>{c}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* One-Pager Tab */}
-        <TabsContent value="onepager" className="space-y-3">
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => handleCopy(onepagerHtml)} disabled={!onepagerHtml}>
-              <Copy className="w-4 h-4 mr-1" /> Copier HTML
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleOpenNewTab(onepagerHtml)} disabled={!onepagerHtml}>
-              <ExternalLink className="w-4 h-4 mr-1" /> Ouvrir
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleDownload(onepagerHtml, 'one-pager.html')} disabled={!onepagerHtml}>
-              <Download className="w-4 h-4 mr-1" /> Télécharger
-            </Button>
-          </div>
-
-          {onepagerHtml ? (
-            <div className="border rounded-lg overflow-hidden bg-white" style={{ height: '70vh' }}>
-              <iframe
-                srcDoc={onepagerHtml}
-                className="w-full h-full"
-                sandbox="allow-same-origin"
-                title="One-Pager"
-              />
-            </div>
-          ) : onepager ? (
-            /* Fallback: render JSON data */
+      {memoHtml ? (
+        <div className="border rounded-lg overflow-hidden bg-white" style={{ height: '70vh' }}>
+          <iframe
+            srcDoc={memoHtml}
+            className="w-full h-full"
+            sandbox="allow-same-origin"
+            title="Mémo d'investissement"
+          />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {re.accroche && (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{onepager.header?.entreprise || 'One-Pager'}</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">Résumé exécutif</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {onepager.proposition_valeur && (
-                  <div className="bg-blue-900 text-white rounded-lg p-4 text-center font-semibold">
-                    {onepager.proposition_valeur}
-                  </div>
+                <p className="font-semibold text-foreground">{re.accroche}</p>
+                {re.opportunite && <p className="text-muted-foreground">{re.opportunite}</p>}
+                {re.montant_recherche && (
+                  <p><span className="font-medium">Financement recherché :</span> {re.montant_recherche}</p>
                 )}
-                {(onepager.points_forts || []).length > 0 && (
-                  <div>
-                    <p className="font-medium text-sm mb-2">Points forts :</p>
-                    <ul className="space-y-1">
-                      {onepager.points_forts.map((p: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <span className="text-green-600 font-bold mt-0.5">✓</span>
-                          <span>{p}</span>
-                        </li>
-                      ))}
+                {(re.points_cles || []).length > 0 && (
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {re.points_cles.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {rf.synthese && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Recommandation finale</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{rf.synthese}</p>
+                {(rf.conditions_prealables || []).length > 0 && (
+                  <div className="mt-3">
+                    <p className="font-medium text-sm mb-1">Conditions préalables :</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-amber-700">
+                      {rf.conditions_prealables.map((c: string, i: number) => <li key={i}>{c}</li>)}
                     </ul>
                   </div>
                 )}
               </CardContent>
             </Card>
-          ) : (
-            <div className="text-center text-gray-400 py-8">One-pager non disponible</div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 };
