@@ -6,6 +6,8 @@ import { AlertCircle } from 'lucide-react';
 import FrameworkViewerComponent from './FrameworkViewer';
 import PlanOvoViewerComponent from './PlanOvoViewer';
 import { OddViewer as OddViewerComponent } from './OddViewer';
+import InvestmentMemoViewer from './InvestmentMemoViewer';
+import GapAnalysisViewer from './GapAnalysisViewer';
 
 interface DeliverableViewerProps {
   moduleCode: string;
@@ -32,6 +34,8 @@ export default function DeliverableViewer({ moduleCode, data, allDeliverables }:
     }
     case 'business_plan': return <BusinessPlanViewer data={data} />;
     case 'odd': return <OddViewerComponent data={data} />;
+    case 'gap_analysis': return <GapAnalysisViewer data={data} />;
+    case 'investment_memo': return <InvestmentMemoViewer data={data} />;
     default: return <GenericJsonViewer data={data} />;
   }
 }

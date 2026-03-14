@@ -53,6 +53,8 @@ export async function getPipelineState(enterpriseId: string): Promise<PipelineSt
       if (ver < CALC_VERSION) return false;
       return true;
     }
+    if (d.type === 'gap_analysis') return !!(d.data.categories && (d.data.score_global > 0 || d.data.score > 0));
+    if (d.type === 'investment_memo') return !!(d.data.memo?.resume_executif || d.data.executive_summary);
     return d.data.canvas || d.data.theorie_changement || d.data.compte_resultat || d.data.ratios || d.data.diagnostic_par_dimension || d.data.scenarios || d.data.checklist;
   };
 
@@ -135,6 +137,8 @@ export async function runPipelineFromClient(
           const ver = d.data.metadata?.calculation_version ?? 0;
           if (ver < CALC_VERSION) rich = false;
         }
+        else if (d.type === 'gap_analysis') rich = !!(d.data.categories && (d.data.score_global > 0 || d.data.score > 0));
+        else if (d.type === 'investment_memo') rich = !!(d.data.memo?.resume_executif || d.data.executive_summary);
         else rich = d.data.canvas || d.data.theorie_changement || d.data.compte_resultat || d.data.ratios || d.data.diagnostic_par_dimension || d.data.scenarios || d.data.checklist;
       }
       const delivDate = new Date(d.updated_at).getTime();
@@ -167,7 +171,7 @@ export async function runPipelineFromClient(
 
     try {
       const controller = new AbortController();
-      const timeoutMs = step.fn === 'generate-business-plan' ? 180000 : 120000;
+      const timeoutMs = (step.fn === 'generate-business-plan' || step.fn === 'generate-investment-memo') ? 180000 : 120000;
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const currentToken = await getFreshToken();

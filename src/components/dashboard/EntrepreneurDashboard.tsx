@@ -301,8 +301,8 @@ export default function EntrepreneurDashboard() {
       const token = await getValidAccessToken(authSession, navigate);
       const functionName = MODULE_FN_MAP[moduleCode] || `generate-${moduleCode}`;
       
-      // Longer timeout for business_plan (two sequential AI calls)
-      const timeoutMs = moduleCode === 'business_plan' ? 300000 : 120000;
+      // Longer timeout for business_plan and investment_memo (multiple sequential AI calls)
+      const timeoutMs = (moduleCode === 'business_plan' || moduleCode === 'investment_memo') ? 300000 : 120000;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       
@@ -812,6 +812,7 @@ export default function EntrepreneurDashboard() {
   const delivTypeMap: Record<string, string> = {
     bmc: 'bmc_analysis', sic: 'sic_analysis', inputs: 'inputs_data', framework: 'framework_data',
     diagnostic: 'diagnostic_data', plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
+    gap_analysis: 'gap_analysis', investment_memo: 'investment_memo',
   };
   const selectedDelivType = delivTypeMap[selectedModule];
   const selectedDeliv = selectedDelivType ? getDeliverable(selectedDelivType) : null;
@@ -913,6 +914,11 @@ export default function EntrepreneurDashboard() {
             )}
             <span className="px-2 py-0.5 rounded bg-white/10 text-white/80 text-[10px] font-medium">🏆 {maturityLabel}</span>
           </div>
+          {enterprise?.readiness_pathway && (
+            <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 text-[10px] font-medium border border-blue-400/20 truncate max-w-[200px]" title={enterprise.readiness_pathway}>
+              🎯 {enterprise.readiness_pathway}
+            </span>
+          )}
           {scoreHistory.length > 1 && (
             <button
               onClick={() => setShowScoreChart(!showScoreChart)}
@@ -1285,6 +1291,72 @@ export default function EntrepreneurDashboard() {
                         <Clock className="h-3 w-3 mr-1" /> Excel sera généré à la prochaine génération
                       </Badge>
                     ) : null}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Download bar for Gap Analysis module */}
+            {selectedModule === 'gap_analysis' && selectedDeliv?.data && (
+              <div className="mx-6 mt-4 mb-2 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-gray-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                      <span className="text-lg">🔍</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Analyse des Écarts Documentaires</p>
+                      <p className="text-xs text-slate-600">Complétude documentaire et niveaux de preuve</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleDownload('gap_analysis', 'html')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Rapport HTML
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Download bar for Investment Memo module */}
+            {selectedModule === 'investment_memo' && selectedDeliv?.data && (
+              <div className="mx-6 mt-4 mb-2 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <span className="text-lg">💼</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900">Mémo d'investissement & One-Pager</p>
+                      <p className="text-xs text-blue-600">Documents pour fonds, bailleurs et investisseurs</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleDownload('investment_memo', 'html')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Mémo HTML
+                    </button>
+                    {selectedDeliv.data?.onepager_html && (
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([selectedDeliv.data.onepager_html], { type: 'text/html' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'one-pager.html';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-blue-700 border border-blue-300 text-xs font-semibold hover:bg-blue-50 transition-colors"
+                      >
+                        <Download className="h-3.5 w-3.5" /> One-Pager HTML
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

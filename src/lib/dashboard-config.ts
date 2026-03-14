@@ -1,6 +1,7 @@
 import {
   LayoutGrid, Globe, FileSpreadsheet, BarChart3,
   Stethoscope, ListChecks, FileText, Target,
+  Search, Briefcase,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -25,6 +26,8 @@ export const MODULE_CONFIG = [
   { code: 'plan_ovo' as ModuleCode,   title: 'Plan Financier Final',     shortTitle: 'Plan Financier Final',     icon: ListChecks,  color: 'bg-amber-100 text-amber-600',  step: 5 },
   { code: 'business_plan' as ModuleCode, title: 'Business Plan',         shortTitle: 'Business Plan',            icon: FileText,    color: 'bg-indigo-100 text-indigo-600', step: 6 },
   { code: 'odd' as ModuleCode,        title: 'ODD',                      shortTitle: 'ODD',                      icon: Target,      color: 'bg-red-100 text-red-600',      step: 7 },
+  { code: 'gap_analysis' as ModuleCode,    title: 'Analyse des Écarts',    shortTitle: 'Gap Analysis',       icon: Search,    color: 'bg-slate-100 text-slate-600',   step: 8 },
+  { code: 'investment_memo' as ModuleCode, title: 'Mémo & One-Pager',      shortTitle: 'Mémo Investisseur',  icon: Briefcase, color: 'bg-blue-100 text-blue-700',    step: 9 },
 ];
 
 export const MODULE_CONFIG_COACH = [
@@ -36,9 +39,14 @@ export const MODULE_CONFIG_COACH = [
   { code: 'plan_ovo',      title: 'Plan Financier Final',        icon: ListChecks,      color: '#ea580c' },
   { code: 'business_plan', title: 'Business Plan',               icon: FileText,        color: '#4338ca' },
   { code: 'odd',           title: 'Due Diligence ODD',           icon: Target,          color: '#0891b2' },
+  { code: 'gap_analysis',    title: 'Analyse des Écarts',        icon: Search,    color: '#475569' },
+  { code: 'investment_memo', title: 'Mémo & One-Pager',          icon: Briefcase, color: '#1d4ed8' },
 ];
 
 export const DELIVERABLE_CONFIG = [
+  { type: 'gap_analysis',    label: 'Analyse des Écarts Documentaires',         formats: ['html', 'json'], icon: '🔍' },
+  { type: 'investment_memo', label: 'Mémo d\'Investissement',                   formats: ['html', 'json'], icon: '💼' },
+  { type: 'onepager',        label: 'One-Pager Investisseur',                   formats: ['html', 'json'], icon: '📃' },
   { type: 'bmc_analysis',    label: 'Business Model Canvas',                     formats: ['html', 'json'], icon: '📊' },
   { type: 'sic_analysis',    label: 'Social Impact Canvas',                      formats: ['html', 'json'], icon: '🌍' },
   { type: 'framework_data',  label: 'Plan Financier Intermédiaire',              formats: ['html', 'xlsx'], icon: '📈' },
@@ -59,6 +67,8 @@ export const PIPELINE = [
   { name: 'Business Plan', fn: 'generate-business-plan', type: 'business_plan' as DeliverableType },
   { name: 'ODD',           fn: 'generate-odd',           type: 'odd_analysis' as DeliverableType },
   { name: 'Diagnostic',    fn: 'generate-diagnostic',    type: 'diagnostic_data' as DeliverableType },
+  { name: 'Gap Analysis',  fn: 'generate-gap-analysis',  type: 'gap_analysis' as DeliverableType },
+  { name: 'Mémo Investisseur', fn: 'generate-investment-memo', type: 'investment_memo' as DeliverableType },
 ];
 
 export const MODULE_FN_MAP: Record<string, string> = {
@@ -70,4 +80,6 @@ export const MODULE_FN_MAP: Record<string, string> = {
   plan_ovo: 'generate-plan-ovo',
   business_plan: 'generate-business-plan',
   odd: 'generate-odd',
+  gap_analysis: 'generate-gap-analysis',
+  investment_memo: 'generate-investment-memo',
 };

@@ -35,6 +35,7 @@ const DELIV_MAP: Record<string, string> = {
   bmc: 'bmc_analysis', sic: 'sic_analysis', inputs: 'inputs_data',
   framework: 'framework_data', diagnostic: 'diagnostic_data',
   plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
+  gap_analysis: 'gap_analysis', investment_memo: 'investment_memo',
 };
 
 const SECTORS = [
@@ -806,7 +807,12 @@ export default function CoachDashboard() {
               {ent.contact_name && <p className="text-sm text-muted-foreground">{ent.contact_name} {ent.contact_email && `• ${ent.contact_email}`}</p>}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {ent.readiness_pathway && (
+              <Badge variant="outline" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200 truncate max-w-[200px]" title={ent.readiness_pathway}>
+                🎯 {ent.readiness_pathway}
+              </Badge>
+            )}
             {(ent.score_ir || 0) > 0 && (
               <Badge variant="outline" className={`text-sm font-bold px-3 py-1 ${getScoreBg(ent.score_ir)}`}>
                 {ent.score_ir}/100
