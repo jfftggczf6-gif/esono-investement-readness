@@ -55,6 +55,7 @@ export async function getPipelineState(enterpriseId: string): Promise<PipelineSt
     }
     if (d.type === 'gap_analysis') return !!(d.data.categories && (d.data.score_global > 0 || d.data.score > 0));
     if (d.type === 'investment_memo') return !!(d.data.memo?.resume_executif || d.data.executive_summary);
+    if (d.type === 'pitch_deck') return !!(d.data.slides && d.data.slides.length >= 10);
     return d.data.canvas || d.data.theorie_changement || d.data.compte_resultat || d.data.ratios || d.data.diagnostic_par_dimension || d.data.scenarios || d.data.checklist;
   };
 
