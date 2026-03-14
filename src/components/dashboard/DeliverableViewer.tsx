@@ -7,6 +7,7 @@ import FrameworkViewerComponent from './FrameworkViewer';
 import PlanOvoViewerComponent from './PlanOvoViewer';
 import { OddViewer as OddViewerComponent } from './OddViewer';
 import InvestmentMemoViewer from './InvestmentMemoViewer';
+import OnePagerViewer from './OnePagerViewer';
 import GapAnalysisViewer from './GapAnalysisViewer';
 
 interface DeliverableViewerProps {
