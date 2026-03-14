@@ -27,7 +27,8 @@ export const MODULE_CONFIG = [
   { code: 'business_plan' as ModuleCode, title: 'Business Plan',         shortTitle: 'Business Plan',            icon: FileText,    color: 'bg-indigo-100 text-indigo-600', step: 6 },
   { code: 'odd' as ModuleCode,        title: 'ODD',                      shortTitle: 'ODD',                      icon: Target,      color: 'bg-red-100 text-red-600',      step: 7 },
   { code: 'gap_analysis' as ModuleCode,    title: 'Analyse des Écarts',    shortTitle: 'Gap Analysis',       icon: Search,    color: 'bg-slate-100 text-slate-600',   step: 8 },
-  { code: 'investment_memo' as ModuleCode, title: 'Mémo & One-Pager',      shortTitle: 'Mémo Investisseur',  icon: Briefcase, color: 'bg-blue-100 text-blue-700',    step: 9 },
+  { code: 'investment_memo' as ModuleCode, title: 'Mémo d\'Investissement', shortTitle: 'Mémo Investisseur',  icon: Briefcase, color: 'bg-blue-100 text-blue-700',    step: 9 },
+  { code: 'onepager' as ModuleCode,       title: 'One-Pager Investisseur', shortTitle: 'One-Pager',          icon: FileText,  color: 'bg-cyan-100 text-cyan-700',    step: 10 },
 ];
 
 export const MODULE_CONFIG_COACH = [
@@ -40,7 +41,8 @@ export const MODULE_CONFIG_COACH = [
   { code: 'business_plan', title: 'Business Plan',               icon: FileText,        color: '#4338ca' },
   { code: 'odd',           title: 'Due Diligence ODD',           icon: Target,          color: '#0891b2' },
   { code: 'gap_analysis',    title: 'Analyse des Écarts',        icon: Search,    color: '#475569' },
-  { code: 'investment_memo', title: 'Mémo & One-Pager',          icon: Briefcase, color: '#1d4ed8' },
+  { code: 'investment_memo', title: 'Mémo Investisseur',          icon: Briefcase, color: '#1d4ed8' },
+  { code: 'onepager',        title: 'One-Pager Investisseur',    icon: FileText,  color: '#0891b2' },
 ];
 
 export const DELIVERABLE_CONFIG = [

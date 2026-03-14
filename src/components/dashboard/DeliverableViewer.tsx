@@ -7,6 +7,7 @@ import FrameworkViewerComponent from './FrameworkViewer';
 import PlanOvoViewerComponent from './PlanOvoViewer';
 import { OddViewer as OddViewerComponent } from './OddViewer';
 import InvestmentMemoViewer from './InvestmentMemoViewer';
+import OnePagerViewer from './OnePagerViewer';
 import GapAnalysisViewer from './GapAnalysisViewer';
 
 interface DeliverableViewerProps {
@@ -36,6 +37,7 @@ export default function DeliverableViewer({ moduleCode, data, allDeliverables }:
     case 'odd': return <OddViewerComponent data={data} />;
     case 'gap_analysis': return <GapAnalysisViewer data={data} />;
     case 'investment_memo': return <InvestmentMemoViewer data={data} />;
+    case 'onepager': return <OnePagerViewer data={data} />;
     default: return <GenericJsonViewer data={data} />;
   }
 }

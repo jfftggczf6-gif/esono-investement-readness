@@ -1,41 +1,14 @@
 
 
-## Plan : Separer Memo et One-Pager en deux volets distincts
+## Réponse
 
-### Contexte actuel
-- L'edge function `generate-investment-memo` genere les deux documents (memo + onepager) dans un seul deliverable de type `investment_memo`.
-- `InvestmentMemoViewer` les affiche deja dans deux onglets (Tabs), donc la separation visuelle existe mais au sein d'un meme module.
+Lovable offre deux options pour tester des modifications sans affecter le projet principal :
 
-### Approche proposee
-Creer deux modules visuels distincts dans la barre de navigation du bas, tout en gardant la generation unifiee (une seule edge function qui produit les deux).
+1. **Remix (clone)** : Créer une copie complète du projet. Allez dans **Settings → Remix this project**. Cela crée un nouveau projet identique où vous pouvez tester librement.
 
-### Modifications
+2. **Branches GitHub** (expérimental) : Si votre projet est connecté à GitHub, vous pouvez activer le switching de branches dans **Account Settings → Labs → GitHub Branch Switching**. Cela vous permet de travailler sur une branche séparée.
 
-**1. `src/lib/dashboard-config.ts`**
-- Ajouter un module `onepager` dans `MODULE_CONFIG` (step 10) avec une icone dediee (ex: `FileText` ou `Layout`)
-- Ajouter dans `MODULE_CONFIG_COACH` egalement
-- Ajouter dans `delivTypeMap` : `onepager → onepager`
+Je ne peux pas créer de remix ou de branche directement pour vous — ces actions se font depuis l'interface Lovable.
 
-**2. `src/components/dashboard/EntrepreneurDashboard.tsx`**
-- Dans le `delivTypeMap`, ajouter `onepager: 'onepager'`
-- Quand le module `investment_memo` est genere et que le data contient `onepager`, sauvegarder aussi un deliverable separe de type `onepager` (ou extraire a l'affichage)
-- Pour le viewer : quand `selectedModule === 'investment_memo'`, afficher uniquement le memo ; quand `selectedModule === 'onepager'`, afficher uniquement le one-pager
-- Creer un `OnePagerViewer` simple ou reutiliser `InvestmentMemoViewer` en mode filtre
-
-**3. `src/components/dashboard/InvestmentMemoViewer.tsx`**
-- Retirer les onglets Tabs et n'afficher que le memo
-- Creer un nouveau composant `OnePagerViewer.tsx` qui n'affiche que le one-pager
-
-**4. Edge function `generate-investment-memo`**
-- Apres generation, sauvegarder **deux** deliverables : un de type `investment_memo` (memo seul) et un de type `onepager` (one-pager seul)
-- Ou bien : garder le deliverable unique et extraire cote frontend (plus simple, moins de migration)
-
-### Option recommandee (la plus simple)
-Garder un seul deliverable `investment_memo` contenant les deux, mais afficher deux icones dans la barre du bas qui pointent vers le meme deliverable avec un filtre d'affichage different. Pas de migration SQL necessaire, pas de changement d'edge function.
-
-### Fichiers modifies
-- `src/lib/dashboard-config.ts`
-- `src/components/dashboard/EntrepreneurDashboard.tsx`
-- `src/components/dashboard/InvestmentMemoViewer.tsx` (memo seulement)
-- Nouveau : `src/components/dashboard/OnePagerViewer.tsx`
+**Recommandation** : Le remix est le plus simple et le plus fiable pour tester des modifications en isolation.
 

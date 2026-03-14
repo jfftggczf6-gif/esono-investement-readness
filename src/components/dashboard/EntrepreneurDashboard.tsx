@@ -812,7 +812,7 @@ export default function EntrepreneurDashboard() {
   const delivTypeMap: Record<string, string> = {
     bmc: 'bmc_analysis', sic: 'sic_analysis', inputs: 'inputs_data', framework: 'framework_data',
     diagnostic: 'diagnostic_data', plan_ovo: 'plan_ovo', business_plan: 'business_plan', odd: 'odd_analysis',
-    gap_analysis: 'gap_analysis', investment_memo: 'investment_memo',
+    gap_analysis: 'gap_analysis', investment_memo: 'investment_memo', onepager: 'investment_memo',
   };
   const selectedDelivType = delivTypeMap[selectedModule];
   const selectedDeliv = selectedDelivType ? getDeliverable(selectedDelivType) : null;
@@ -1330,34 +1330,47 @@ export default function EntrepreneurDashboard() {
                       <span className="text-lg">💼</span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-blue-900">Mémo d'investissement & One-Pager</p>
-                      <p className="text-xs text-blue-600">Documents pour fonds, bailleurs et investisseurs</p>
+                      <p className="text-sm font-semibold text-blue-900">Mémo d'investissement</p>
+                      <p className="text-xs text-blue-600">Document pour fonds, bailleurs et investisseurs</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleDownload('investment_memo', 'html')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors shadow-sm"
-                    >
-                      <Download className="h-3.5 w-3.5" /> Mémo HTML
-                    </button>
-                    {(selectedDeliv.data as any)?.onepager_html && (
-                      <button
-                        onClick={() => {
-                          const blob = new Blob([(selectedDeliv.data as any).onepager_html], { type: 'text/html' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = 'one-pager.html';
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-blue-700 border border-blue-300 text-xs font-semibold hover:bg-blue-50 transition-colors"
-                      >
-                        <Download className="h-3.5 w-3.5" /> One-Pager HTML
-                      </button>
-                    )}
+                  <button
+                    onClick={() => handleDownload('investment_memo', 'html')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors shadow-sm"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Mémo HTML
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Download bar for One-Pager module */}
+            {selectedModule === 'onepager' && selectedDeliv?.data && (selectedDeliv.data as any)?.onepager_html && (
+              <div className="mx-6 mt-4 mb-2 rounded-xl border border-cyan-200 bg-gradient-to-r from-cyan-50 to-blue-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+                      <span className="text-lg">📃</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-cyan-900">One-Pager Investisseur</p>
+                      <p className="text-xs text-cyan-600">Synthèse visuelle d'une page</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([(selectedDeliv.data as any).onepager_html], { type: 'text/html' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'one-pager.html';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-700 text-white text-xs font-semibold hover:bg-cyan-800 transition-colors shadow-sm"
+                  >
+                    <Download className="h-3.5 w-3.5" /> One-Pager HTML
+                  </button>
                 </div>
               </div>
             )}
@@ -1393,7 +1406,7 @@ export default function EntrepreneurDashboard() {
       <div className="flex-none border-t border-border bg-card px-6 py-3">
         <div className="flex items-end justify-center gap-6">
           {MODULE_CONFIG.map(mod => {
-            const data = getModuleData(mod.code);
+            const data = getModuleData((mod.code as string) === 'onepager' ? 'investment_memo' : mod.code);
             const Icon = mod.icon;
             const isSelected = selectedModule === mod.code;
             const isCompleted = data.status === 'completed';
