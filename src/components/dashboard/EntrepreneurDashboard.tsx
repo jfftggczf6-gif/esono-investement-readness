@@ -1406,7 +1406,7 @@ export default function EntrepreneurDashboard() {
       <div className="flex-none border-t border-border bg-card px-6 py-3">
         <div className="flex items-end justify-center gap-6">
           {MODULE_CONFIG.map(mod => {
-            const data = getModuleData(mod.code);
+            const data = getModuleData(mod.code === 'onepager' ? 'investment_memo' : mod.code);
             const Icon = mod.icon;
             const isSelected = selectedModule === mod.code;
             const isCompleted = data.status === 'completed';
