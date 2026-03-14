@@ -808,9 +808,9 @@ export default function CoachDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {ent.readiness_pathway && (
-              <Badge variant="outline" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200 truncate max-w-[200px]" title={ent.readiness_pathway}>
-                🎯 {ent.readiness_pathway}
+            {(ent as any).readiness_pathway && (
+              <Badge variant="outline" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200 truncate max-w-[200px]" title={(ent as any).readiness_pathway}>
+                🎯 {(ent as any).readiness_pathway}
               </Badge>
             )}
             {(ent.score_ir || 0) > 0 && (

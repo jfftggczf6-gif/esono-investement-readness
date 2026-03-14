@@ -914,9 +914,9 @@ export default function EntrepreneurDashboard() {
             )}
             <span className="px-2 py-0.5 rounded bg-white/10 text-white/80 text-[10px] font-medium">🏆 {maturityLabel}</span>
           </div>
-          {enterprise?.readiness_pathway && (
-            <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 text-[10px] font-medium border border-blue-400/20 truncate max-w-[200px]" title={enterprise.readiness_pathway}>
-              🎯 {enterprise.readiness_pathway}
+          {(enterprise as any)?.readiness_pathway && (
+            <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 text-[10px] font-medium border border-blue-400/20 truncate max-w-[200px]" title={(enterprise as any).readiness_pathway}>
+              🎯 {(enterprise as any).readiness_pathway}
             </span>
           )}
           {scoreHistory.length > 1 && (
@@ -1341,10 +1341,10 @@ export default function EntrepreneurDashboard() {
                     >
                       <Download className="h-3.5 w-3.5" /> Mémo HTML
                     </button>
-                    {selectedDeliv.data?.onepager_html && (
+                    {(selectedDeliv.data as any)?.onepager_html && (
                       <button
                         onClick={() => {
-                          const blob = new Blob([selectedDeliv.data.onepager_html], { type: 'text/html' });
+                          const blob = new Blob([(selectedDeliv.data as any).onepager_html], { type: 'text/html' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;

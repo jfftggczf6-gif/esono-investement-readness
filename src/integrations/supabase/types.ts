@@ -170,17 +170,17 @@ export type Database = {
           creation_date: string | null
           description: string | null
           employees_count: number | null
+          gap_score_commercial: number | null
+          gap_score_corporate: number | null
+          gap_score_esg: number | null
+          gap_score_finance: number | null
+          gap_score_legal: number | null
           id: string
           last_activity: string | null
           legal_form: string | null
           logo_url: string | null
           name: string
           phase: string | null
-          gap_score_commercial: number | null
-          gap_score_corporate: number | null
-          gap_score_esg: number | null
-          gap_score_finance: number | null
-          gap_score_legal: number | null
           readiness_pathway: string | null
           score_ir: number | null
           sector: string | null
@@ -228,12 +228,18 @@ export type Database = {
           creation_date?: string | null
           description?: string | null
           employees_count?: number | null
+          gap_score_commercial?: number | null
+          gap_score_corporate?: number | null
+          gap_score_esg?: number | null
+          gap_score_finance?: number | null
+          gap_score_legal?: number | null
           id?: string
           last_activity?: string | null
           legal_form?: string | null
           logo_url?: string | null
           name?: string
           phase?: string | null
+          readiness_pathway?: string | null
           score_ir?: number | null
           sector?: string | null
           updated_at?: string
