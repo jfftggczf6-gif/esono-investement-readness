@@ -170,12 +170,18 @@ export type Database = {
           creation_date: string | null
           description: string | null
           employees_count: number | null
+          gap_score_commercial: number | null
+          gap_score_corporate: number | null
+          gap_score_esg: number | null
+          gap_score_finance: number | null
+          gap_score_legal: number | null
           id: string
           last_activity: string | null
           legal_form: string | null
           logo_url: string | null
           name: string
           phase: string | null
+          readiness_pathway: string | null
           score_ir: number | null
           sector: string | null
           updated_at: string
@@ -193,12 +199,18 @@ export type Database = {
           creation_date?: string | null
           description?: string | null
           employees_count?: number | null
+          gap_score_commercial?: number | null
+          gap_score_corporate?: number | null
+          gap_score_esg?: number | null
+          gap_score_finance?: number | null
+          gap_score_legal?: number | null
           id?: string
           last_activity?: string | null
           legal_form?: string | null
           logo_url?: string | null
           name: string
           phase?: string | null
+          readiness_pathway?: string | null
           score_ir?: number | null
           sector?: string | null
           updated_at?: string
@@ -216,12 +228,18 @@ export type Database = {
           creation_date?: string | null
           description?: string | null
           employees_count?: number | null
+          gap_score_commercial?: number | null
+          gap_score_corporate?: number | null
+          gap_score_esg?: number | null
+          gap_score_finance?: number | null
+          gap_score_legal?: number | null
           id?: string
           last_activity?: string | null
           legal_form?: string | null
           logo_url?: string | null
           name?: string
           phase?: string | null
+          readiness_pathway?: string | null
           score_ir?: number | null
           sector?: string | null
           updated_at?: string
@@ -392,6 +410,9 @@ export type Database = {
         | "odd_analysis"
         | "plan_ovo_excel"
         | "odd_excel"
+        | "gap_analysis"
+        | "investment_memo"
+        | "onepager"
       module_code:
         | "bmc"
         | "sic"
@@ -401,6 +422,8 @@ export type Database = {
         | "plan_ovo"
         | "business_plan"
         | "odd"
+        | "gap_analysis"
+        | "investment_memo"
       module_status: "not_started" | "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -548,6 +571,9 @@ export const Constants = {
         "odd_analysis",
         "plan_ovo_excel",
         "odd_excel",
+        "gap_analysis",
+        "investment_memo",
+        "onepager",
       ],
       module_code: [
         "bmc",
@@ -558,6 +584,8 @@ export const Constants = {
         "plan_ovo",
         "business_plan",
         "odd",
+        "gap_analysis",
+        "investment_memo",
       ],
       module_status: ["not_started", "in_progress", "completed"],
     },
