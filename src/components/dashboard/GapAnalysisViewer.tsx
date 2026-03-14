@@ -1,8 +1,6 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Copy, ExternalLink, Download, AlertTriangle, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
+import { Copy, Download, AlertTriangle, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface GapAnalysisViewerProps {

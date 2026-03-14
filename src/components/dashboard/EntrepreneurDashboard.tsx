@@ -1341,10 +1341,10 @@ export default function EntrepreneurDashboard() {
                     >
                       <Download className="h-3.5 w-3.5" /> Mémo HTML
                     </button>
-                    {selectedDeliv.data?.onepager_html && (
+                    {(selectedDeliv.data as any)?.onepager_html && (
                       <button
                         onClick={() => {
-                          const blob = new Blob([selectedDeliv.data.onepager_html], { type: 'text/html' });
+                          const blob = new Blob([(selectedDeliv.data as any).onepager_html], { type: 'text/html' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;
