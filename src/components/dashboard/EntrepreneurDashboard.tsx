@@ -15,7 +15,8 @@ import {
   Plus, Building2, Sparkles, Download,
   LogOut, Clock, CheckCircle2, Loader2,
   FolderPlus, Pencil, Trash2, TrendingUp,
-  FileText, BarChart3, Stethoscope, LayoutGrid, Globe, FileSpreadsheet, Target
+  FileText, BarChart3, Stethoscope, LayoutGrid, Globe, FileSpreadsheet, Target,
+  FolderOpen,
 } from 'lucide-react';
 import BmcViewer from './BmcViewer';
 import SicViewer from './SicViewer';
@@ -836,6 +837,16 @@ export default function EntrepreneurDashboard() {
         </Button>
         <div className="mr-auto" />
         <div className="flex items-center gap-4">
+          {enterprise?.data_room_enabled && (
+            <Button
+              variant={selectedModule === 'data_room' ? 'default' : 'outline'}
+              size="sm"
+              className="gap-2"
+              onClick={() => setSelectedModule(selectedModule === 'data_room' ? 'business_plan' : 'data_room')}
+            >
+              <FolderOpen className="h-4 w-4" /> Data Room
+            </Button>
+          )}
           <span className="text-sm text-foreground">
             {profile?.full_name} · <span className="text-muted-foreground">{profile?.email}</span>
           </span>
@@ -1538,10 +1549,15 @@ export default function EntrepreneurDashboard() {
         onSelect={async (mode) => {
           setShowModeModal(false);
           if (pendingEnterpriseId) {
-            await supabase.from('enterprises').update({
+            const updates: Record<string, any> = {
               operating_mode: mode,
               data_room_enabled: mode === 'due_diligence',
-            }).eq('id', pendingEnterpriseId);
+            };
+            // Auto-generate a clean slug when Data Room is enabled
+            if (mode === 'due_diligence') {
+              updates.data_room_slug = `${pendingEnterpriseId.slice(0, 8)}-${Date.now().toString(36)}`;
+            }
+            await supabase.from('enterprises').update(updates).eq('id', pendingEnterpriseId);
             setPendingEnterpriseId(null);
             fetchData();
           }

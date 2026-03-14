@@ -62,7 +62,7 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function DataRoomManager({ enterpriseId, enterpriseName, enterpriseSlug }: DataRoomManagerProps) {
+export default function DataRoomManager({ enterpriseId, enterpriseName, enterpriseSlug: initialSlug }: DataRoomManagerProps) {
   const [documents, setDocuments] = useState<DataRoomDocument[]>([]);
   const [shares, setShares] = useState<ShareEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,10 +70,19 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
   const [showShareModal, setShowShareModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingCategory, setPendingCategory] = useState<string | null>(null);
+  const [resolvedSlug, setResolvedSlug] = useState<string>(initialSlug || '');
 
   // Share form state
   const [shareForm, setShareForm] = useState({ name: '', email: '', days: 30, can_download: true });
   const [sharing, setSharing] = useState(false);
+
+  const ensureSlug = async (): Promise<string> => {
+    if (resolvedSlug) return resolvedSlug;
+    const generated = `${enterpriseId.slice(0, 8)}-${Date.now().toString(36)}`;
+    await supabase.from('enterprises').update({ data_room_slug: generated, data_room_enabled: true }).eq('id', enterpriseId);
+    setResolvedSlug(generated);
+    return generated;
+  };
 
   const load = async () => {
     setLoading(true);
@@ -86,7 +95,10 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [enterpriseId]);
+  useEffect(() => {
+    if (initialSlug) setResolvedSlug(initialSlug);
+    load();
+  }, [enterpriseId]);
 
   const handleUploadClick = (categoryId: string) => {
     setPendingCategory(categoryId);
@@ -154,8 +166,9 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
       }).select().single();
       if (error) throw new Error(error.message);
 
-      // Enable data room on enterprise if not already
-      await supabase.from('enterprises').update({ data_room_enabled: true }).eq('id', enterpriseId);
+      // Enable data room + ensure slug exists
+      const slug = await ensureSlug();
+      await supabase.from('enterprises').update({ data_room_enabled: true, data_room_slug: slug }).eq('id', enterpriseId);
 
       toast.success(`Partage créé pour ${shareForm.name}`);
       setShowShareModal(false);
@@ -173,9 +186,9 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
     toast.success('Accès révoqué');
   };
 
-  const copyLink = (share: ShareEntry) => {
+  const copyLink = async (_share: ShareEntry) => {
     // Token is sent separately — link only contains the slug
-    const slug = enterpriseSlug || enterpriseId;
+    const slug = await ensureSlug();
     const link = `${window.location.origin}/dataroom/${slug}`;
     navigator.clipboard.writeText(link);
     toast.success('Lien copié — envoyez le token séparément à l\'investisseur');
