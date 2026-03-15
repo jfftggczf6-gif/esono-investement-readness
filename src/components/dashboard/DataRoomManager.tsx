@@ -87,8 +87,8 @@ export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpr
   const load = async () => {
     setLoading(true);
     const [{ data: docs }, { data: shareRows }] = await Promise.all([
-      supabase.from('data_room_documents').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
-      supabase.from('data_room_shares').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
+      (supabase as any).from('data_room_documents').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
+      (supabase as any).from('data_room_shares').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
     ]);
     setDocuments((docs as DataRoomDocument[]) || []);
     setShares((shareRows as ShareEntry[]) || []);
