@@ -120,7 +120,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpr
         const { error: uploadError } = await supabase.storage.from('documents').upload(path, file, { upsert: true });
         if (uploadError) throw new Error(uploadError.message);
 
-        const { error: dbError } = await supabase.from('data_room_documents').insert({
+        const { error: dbError } = await (supabase as any).from('data_room_documents').insert({
           enterprise_id: enterpriseId,
           category: pendingCategory,
           label: file.name.replace(/\.[^/.]+$/, ''),
