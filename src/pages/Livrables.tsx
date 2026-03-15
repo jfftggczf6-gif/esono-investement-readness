@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import {
   Download, CheckCircle2, Clock, Loader2,
   LayoutGrid, Globe, BarChart3,
-  Stethoscope, ListChecks, FileText, Target
+  Stethoscope, ListChecks, FileText, Target,
+  Search, Briefcase, Presentation
 } from 'lucide-react';
 
 const DELIVERABLES = [
@@ -20,6 +21,10 @@ const DELIVERABLES = [
   { type: 'plan_ovo', label: 'Plan Financier Final', module: 'Plan Financier Final', icon: ListChecks, format: '.html' },
   { type: 'business_plan', label: 'Business Plan', module: 'Business Plan', icon: FileText, format: '.html' },
   { type: 'odd_analysis', label: 'Due Diligence ODD', module: 'ODD', icon: Target, format: '.html' },
+  { type: 'gap_analysis', label: 'Analyse des Écarts', module: 'Gap Analysis', icon: Search, format: '.html' },
+  { type: 'investment_memo', label: "Mémo d'Investissement", module: 'Mémo Investisseur', icon: Briefcase, format: '.html' },
+  { type: 'onepager', label: 'One-Pager Investisseur', module: 'One-Pager', icon: FileText, format: '.html' },
+  { type: 'pitch_deck', label: 'Pitch Deck', module: 'Pitch Deck', icon: Presentation, format: '.html' },
 ];
 
 export default function Livrables() {
