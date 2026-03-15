@@ -413,6 +413,7 @@ export type Database = {
         | "gap_analysis"
         | "investment_memo"
         | "onepager"
+        | "pitch_deck"
       module_code:
         | "bmc"
         | "sic"
@@ -424,6 +425,8 @@ export type Database = {
         | "odd"
         | "gap_analysis"
         | "investment_memo"
+        | "pitch_deck"
+        | "onepager"
       module_status: "not_started" | "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -574,6 +577,7 @@ export const Constants = {
         "gap_analysis",
         "investment_memo",
         "onepager",
+        "pitch_deck",
       ],
       module_code: [
         "bmc",
@@ -586,6 +590,8 @@ export const Constants = {
         "odd",
         "gap_analysis",
         "investment_memo",
+        "pitch_deck",
+        "onepager",
       ],
       module_status: ["not_started", "in_progress", "completed"],
     },
