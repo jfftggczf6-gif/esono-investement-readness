@@ -55,6 +55,7 @@ export default function EntrepreneurDashboard() {
   const [generating, setGenerating] = useState(false);
   const [generatingModule, setGeneratingModule] = useState<string | null>(null);
   const [generatingOvoPlan, setGeneratingOvoPlan] = useState(false);
+  const [generatingAdvanced, setGeneratingAdvanced] = useState<string | null>(null);
   const [ovoDownloadUrl, setOvoDownloadUrl] = useState<string | null>(null);
   const [selectedModule, setSelectedModule] = useState<string>('business_plan');
   const [showEdit, setShowEdit] = useState(false);
@@ -295,6 +296,59 @@ export default function EntrepreneurDashboard() {
     } finally {
       setGenerating(false);
       setGenerationProgress(null);
+      await fetchData();
+    }
+  };
+
+  const ADVANCED_MODULES = [
+    { code: 'gap_analysis', fn: 'generate-gap-analysis', label: 'Gap Analysis' },
+    { code: 'investment_memo', fn: 'generate-investment-memo', label: 'Mémo Investisseur' },
+    { code: 'onepager', fn: 'generate-deliverables', label: 'One-Pager' },
+    { code: 'pitch_deck', fn: 'generate-pitch-deck', label: 'Pitch Deck' },
+  ];
+
+  const handleGenerateAdvanced = async () => {
+    if (!enterprise) return;
+    setGeneratingAdvanced('starting');
+    let successCount = 0;
+    try {
+      const token = await getValidAccessToken(authSession, navigate);
+      for (const mod of ADVANCED_MODULES) {
+        setGeneratingAdvanced(mod.label);
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), mod.code === 'investment_memo' ? 300000 : 180000);
+          const body: Record<string, string> = { enterprise_id: enterprise.id };
+          if (mod.code === 'onepager') body.type = 'onepager';
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${mod.fn}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(body),
+              signal: controller.signal,
+            }
+          );
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: response.statusText }));
+            toast.error(`${mod.label} : ${err.error || 'Erreur'}`);
+            continue;
+          }
+          const result = await response.json();
+          toast.success(`${mod.label} généré${result.score ? ` — Score: ${result.score}/100` : ''} ✓`);
+          successCount++;
+        } catch (err: any) {
+          toast.error(`${mod.label} : ${err.name === 'AbortError' ? 'Timeout' : err.message}`);
+        }
+      }
+      if (successCount > 0) {
+        toast.success(`${successCount}/${ADVANCED_MODULES.length} modules avancés générés !`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setGeneratingAdvanced(null);
       await fetchData();
     }
   };
@@ -1552,6 +1606,20 @@ export default function EntrepreneurDashboard() {
             className="gap-2 rounded-xl px-4 py-3 h-auto text-xs"
           >
             <Sparkles className="h-4 w-4" /> Régénération complète
+          </Button>
+        )}
+        {!generating && (
+          <Button
+            size="lg"
+            onClick={handleGenerateAdvanced}
+            disabled={!!generatingAdvanced}
+            className="gap-2 rounded-xl px-4 py-3 h-auto text-xs bg-violet-600 hover:bg-violet-700 text-white shadow-lg"
+          >
+            {generatingAdvanced ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> {generatingAdvanced}…</>
+            ) : (
+              <><Target className="h-4 w-4" /> Modules avancés (Gap, Mémo, Pitch)</>
+            )}
           </Button>
         )}
       </div>
