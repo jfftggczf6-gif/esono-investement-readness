@@ -168,7 +168,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpr
 
       // Enable data room + ensure slug exists
       const slug = await ensureSlug();
-      await supabase.from('enterprises').update({ data_room_enabled: true, data_room_slug: slug }).eq('id', enterpriseId);
+      await (supabase as any).from('enterprises').update({ data_room_enabled: true, data_room_slug: slug }).eq('id', enterpriseId);
 
       toast.success(`Partage créé pour ${shareForm.name}`);
       setShowShareModal(false);
