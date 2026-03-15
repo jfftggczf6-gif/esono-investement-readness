@@ -1584,7 +1584,7 @@ export default function EntrepreneurDashboard() {
             <DataRoomManager
               enterpriseId={enterprise.id}
               enterpriseName={enterprise.name}
-              enterpriseSlug={enterprise.data_room_slug}
+              enterpriseSlug={(enterprise as any).data_room_slug}
             />
           </div>
         </div>

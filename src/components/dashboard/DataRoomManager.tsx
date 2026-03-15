@@ -181,7 +181,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpr
   };
 
   const handleRevokeShare = async (shareId: string) => {
-    await supabase.from('data_room_shares').delete().eq('id', shareId);
+    await (supabase as any).from('data_room_shares').delete().eq('id', shareId);
     setShares(prev => prev.filter(s => s.id !== shareId));
     toast.success('Accès révoqué');
   };
