@@ -837,7 +837,7 @@ export default function EntrepreneurDashboard() {
         </Button>
         <div className="mr-auto" />
         <div className="flex items-center gap-4">
-          {enterprise?.data_room_enabled && (
+          {(enterprise as any)?.data_room_enabled && (
             <Button
               variant={selectedModule === 'data_room' ? 'default' : 'outline'}
               size="sm"
