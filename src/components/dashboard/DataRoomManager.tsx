@@ -144,7 +144,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpr
 
   const handleDeleteDoc = async (doc: DataRoomDocument) => {
     await supabase.storage.from('documents').remove([doc.filename]);
-    await supabase.from('data_room_documents').delete().eq('id', doc.id);
+    await (supabase as any).from('data_room_documents').delete().eq('id', doc.id);
     setDocuments(prev => prev.filter(d => d.id !== doc.id));
     toast.success('Document supprimé');
   };
