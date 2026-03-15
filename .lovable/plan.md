@@ -1,34 +1,14 @@
 
 
-## Pourquoi les nouveaux livrables ne sont pas generés
+## Réponse
 
-Il y a **3 problèmes de build** qui empêchent le déploiement :
+Lovable offre deux options pour tester des modifications sans affecter le projet principal :
 
-### Problème 1 : `npm:docx@8` dans `generate-business-plan`
-L'import `npm:docx@8` n'est pas supporté par l'edge runtime. Il faut le remplacer par un import `esm.sh`.
+1. **Remix (clone)** : Créer une copie complète du projet. Allez dans **Settings → Remix this project**. Cela crée un nouveau projet identique où vous pouvez tester librement.
 
-**Fichier** : `supabase/functions/generate-business-plan/index.ts` ligne 4
-- Remplacer : `from "npm:docx@8"`
-- Par : `from "https://esm.sh/docx@8.5.0"`
+2. **Branches GitHub** (expérimental) : Si votre projet est connecté à GitHub, vous pouvez activer le switching de branches dans **Account Settings → Labs → GitHub Branch Switching**. Cela vous permet de travailler sur une branche séparée.
 
-### Problème 2 : Doublons dans `types.ts` (auto-généré)
-Le fichier `types.ts` contient des propriétés dupliquées (`gap_score_*`, `readiness_pathway`) dans le bloc `Update` de `enterprises`. Ce fichier est auto-généré — les doublons viennent probablement d'une migration qui a ré-ajouté des colonnes déjà présentes. Il faut supprimer les lignes 396-401 (les doublons en fin de bloc `Update`).
+Je ne peux pas créer de remix ou de branche directement pour vous — ces actions se font depuis l'interface Lovable.
 
-**Fichier** : `src/integrations/supabase/types.ts` lignes 396-401 — supprimer ces 6 lignes dupliquées.
-
-### Problème 3 : `pitch_html` sans cast `as any`
-Même problème que précédemment corrigé pour `onepager_html`.
-
-**Fichier** : `src/components/dashboard/EntrepreneurDashboard.tsx` lignes 1415 et 1418
-- Remplacer `selectedDeliv.data?.pitch_html` par `(selectedDeliv.data as any)?.pitch_html`
-- Remplacer `selectedDeliv.data.pitch_html` par `(selectedDeliv.data as any).pitch_html`
-
-### Problème 4 : Imports inutilisés (warnings bloquants)
-- `CoachDashboard.tsx` ligne 24 : retirer `Presentation` et `Wand2`
-- `DataRoomManager.tsx` ligne 7 : retirer `FolderOpen` ; ligne 65 : préfixer `_enterpriseName` ; ligne 160 : préfixer `_data`
-- `InputsWizard.tsx` ligne 182 : préfixer `_enterpriseId`
-- `ReconstructionUploader.tsx` ligne 6 : retirer `Upload`
-
-### Résumé
-Une fois ces 4 corrections appliquées, le build passera et les edge functions `generate-gap-analysis`, `generate-investment-memo` et `generate-pitch-deck` pourront s'exécuter dans le pipeline.
+**Recommandation** : Le remix est le plus simple et le plus fiable pour tester des modifications en isolation.
 

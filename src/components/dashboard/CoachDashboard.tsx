@@ -21,7 +21,7 @@ import {
   Plus, Download, Sparkles, Loader2, ArrowLeft, Eye, Lock,
   Share2, AlertCircle, FileCheck, UserPlus, Search, Trash2,
   Upload, X, FileText, FileSpreadsheet, Stethoscope, LayoutGrid, Globe, Target,
-  FolderOpen, Presentation, Wand2,
+  FolderOpen,
 } from 'lucide-react';
 import {
   MODULE_CONFIG_COACH as MODULE_CONFIG, MODULE_CONFIG as MIRROR_MODULES, PIPELINE,
@@ -838,8 +838,8 @@ export default function CoachDashboard() {
               onChange={async (e) => {
                 const newMode = e.target.value;
                 const dataRoomEnabled = newMode === 'due_diligence';
-                await supabase.from('enterprises').update({
-                  operating_mode: newMode as any,
+                await (supabase as any).from('enterprises').update({
+                  operating_mode: newMode,
                   data_room_enabled: dataRoomEnabled,
                 }).eq('id', ent.id);
                 setSelectedEnt({ ...ent, operating_mode: newMode as any, data_room_enabled: dataRoomEnabled } as any);

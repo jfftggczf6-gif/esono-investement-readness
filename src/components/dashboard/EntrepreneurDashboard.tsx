@@ -837,7 +837,7 @@ export default function EntrepreneurDashboard() {
         </Button>
         <div className="mr-auto" />
         <div className="flex items-center gap-4">
-          {enterprise?.data_room_enabled && (
+          {(enterprise as any)?.data_room_enabled && (
             <Button
               variant={selectedModule === 'data_room' ? 'default' : 'outline'}
               size="sm"
@@ -937,9 +937,9 @@ export default function EntrepreneurDashboard() {
               🎯 {(enterprise as any).readiness_pathway}
             </span>
           )}
-          {enterprise?.operating_mode && enterprise.operating_mode !== 'assisted' && (
+          {(enterprise as any)?.operating_mode && (enterprise as any).operating_mode !== 'assisted' && (
             <span className="px-2 py-0.5 rounded bg-white/10 text-white/70 text-[10px] font-medium border border-white/10">
-              {enterprise.operating_mode === 'reconstruction' ? '🔧 Reconstruction' : '📁 Due Diligence'}
+              {(enterprise as any).operating_mode === 'reconstruction' ? '🔧 Reconstruction' : '📁 Due Diligence'}
             </span>
           )}
           {scoreHistory.length > 1 && (
@@ -1412,10 +1412,10 @@ export default function EntrepreneurDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {selectedDeliv.data?.pitch_html && (
+                    {(selectedDeliv.data as any)?.pitch_html && (
                       <button
                         onClick={() => {
-                          const blob = new Blob([selectedDeliv.data.pitch_html], { type: 'text/html' });
+                          const blob = new Blob([(selectedDeliv.data as any).pitch_html], { type: 'text/html' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;
@@ -1584,7 +1584,7 @@ export default function EntrepreneurDashboard() {
             <DataRoomManager
               enterpriseId={enterprise.id}
               enterpriseName={enterprise.name}
-              enterpriseSlug={enterprise.data_room_slug}
+              enterpriseSlug={(enterprise as any).data_room_slug}
             />
           </div>
         </div>

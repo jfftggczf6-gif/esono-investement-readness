@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  FolderOpen, Upload, FileText, Trash2, Share2, Link, Eye, EyeOff,
+  Upload, FileText, Trash2, Share2, Link, Eye, EyeOff,
   Shield, TrendingUp, Users, Leaf, Building2, AlertTriangle, Loader2, Copy, CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -62,7 +62,7 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function DataRoomManager({ enterpriseId, enterpriseName, enterpriseSlug: initialSlug }: DataRoomManagerProps) {
+export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpriseName, enterpriseSlug: initialSlug }: DataRoomManagerProps) {
   const [documents, setDocuments] = useState<DataRoomDocument[]>([]);
   const [shares, setShares] = useState<ShareEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +79,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
   const ensureSlug = async (): Promise<string> => {
     if (resolvedSlug) return resolvedSlug;
     const generated = `${enterpriseId.slice(0, 8)}-${Date.now().toString(36)}`;
-    await supabase.from('enterprises').update({ data_room_slug: generated, data_room_enabled: true }).eq('id', enterpriseId);
+    await (supabase as any).from('enterprises').update({ data_room_slug: generated, data_room_enabled: true }).eq('id', enterpriseId);
     setResolvedSlug(generated);
     return generated;
   };
@@ -87,8 +87,8 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
   const load = async () => {
     setLoading(true);
     const [{ data: docs }, { data: shareRows }] = await Promise.all([
-      supabase.from('data_room_documents').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
-      supabase.from('data_room_shares').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
+      (supabase as any).from('data_room_documents').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
+      (supabase as any).from('data_room_shares').select('*').eq('enterprise_id', enterpriseId).order('created_at', { ascending: false }),
     ]);
     setDocuments((docs as DataRoomDocument[]) || []);
     setShares((shareRows as ShareEntry[]) || []);
@@ -120,7 +120,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
         const { error: uploadError } = await supabase.storage.from('documents').upload(path, file, { upsert: true });
         if (uploadError) throw new Error(uploadError.message);
 
-        const { error: dbError } = await supabase.from('data_room_documents').insert({
+        const { error: dbError } = await (supabase as any).from('data_room_documents').insert({
           enterprise_id: enterpriseId,
           category: pendingCategory,
           label: file.name.replace(/\.[^/.]+$/, ''),
@@ -144,7 +144,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
 
   const handleDeleteDoc = async (doc: DataRoomDocument) => {
     await supabase.storage.from('documents').remove([doc.filename]);
-    await supabase.from('data_room_documents').delete().eq('id', doc.id);
+    await (supabase as any).from('data_room_documents').delete().eq('id', doc.id);
     setDocuments(prev => prev.filter(d => d.id !== doc.id));
     toast.success('Document supprimé');
   };
@@ -157,7 +157,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
     setSharing(true);
     try {
       const expiresAt = new Date(Date.now() + shareForm.days * 24 * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase.from('data_room_shares').insert({
+      const { data: _data, error } = await (supabase as any).from('data_room_shares').insert({
         enterprise_id: enterpriseId,
         investor_name: shareForm.name,
         investor_email: shareForm.email,
@@ -168,7 +168,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
 
       // Enable data room + ensure slug exists
       const slug = await ensureSlug();
-      await supabase.from('enterprises').update({ data_room_enabled: true, data_room_slug: slug }).eq('id', enterpriseId);
+      await (supabase as any).from('enterprises').update({ data_room_enabled: true, data_room_slug: slug }).eq('id', enterpriseId);
 
       toast.success(`Partage créé pour ${shareForm.name}`);
       setShowShareModal(false);
@@ -181,7 +181,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName, enterpri
   };
 
   const handleRevokeShare = async (shareId: string) => {
-    await supabase.from('data_room_shares').delete().eq('id', shareId);
+    await (supabase as any).from('data_room_shares').delete().eq('id', shareId);
     setShares(prev => prev.filter(s => s.id !== shareId));
     toast.success('Accès révoqué');
   };

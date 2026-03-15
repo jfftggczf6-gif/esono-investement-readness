@@ -84,7 +84,7 @@ export default function ActivityTimeline({ enterpriseId, limit = 20 }: ActivityT
     const load = async () => {
       setLoading(true);
       try {
-        const { data } = await supabase
+        const { data } = await (supabase as any)
           .from('activity_log')
           .select('*')
           .eq('enterprise_id', enterpriseId)
