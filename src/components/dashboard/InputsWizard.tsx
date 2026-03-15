@@ -179,7 +179,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
   );
 }
 
-export default function InputsWizard({ enterpriseId, initialData, onComplete, onCancel }: InputsWizardProps) {
+export default function InputsWizard({ enterpriseId: _enterpriseId, initialData, onComplete, onCancel }: InputsWizardProps) {
   const [step, setStep] = useState(0);
 
   // Flat state: key → value (number | null | 'unknown')

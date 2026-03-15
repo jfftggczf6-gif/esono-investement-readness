@@ -1412,10 +1412,10 @@ export default function EntrepreneurDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {selectedDeliv.data?.pitch_html && (
+                    {(selectedDeliv.data as any)?.pitch_html && (
                       <button
                         onClick={() => {
-                          const blob = new Blob([selectedDeliv.data.pitch_html], { type: 'text/html' });
+                          const blob = new Blob([(selectedDeliv.data as any).pitch_html], { type: 'text/html' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;

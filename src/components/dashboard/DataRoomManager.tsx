@@ -157,7 +157,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpr
     setSharing(true);
     try {
       const expiresAt = new Date(Date.now() + shareForm.days * 24 * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase.from('data_room_shares').insert({
+      const { data: _data, error } = await supabase.from('data_room_shares').insert({
         enterprise_id: enterpriseId,
         investor_name: shareForm.name,
         investor_email: shareForm.email,

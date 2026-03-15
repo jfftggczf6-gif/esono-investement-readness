@@ -21,7 +21,7 @@ import {
   Plus, Download, Sparkles, Loader2, ArrowLeft, Eye, Lock,
   Share2, AlertCircle, FileCheck, UserPlus, Search, Trash2,
   Upload, X, FileText, FileSpreadsheet, Stethoscope, LayoutGrid, Globe, Target,
-  FolderOpen, Presentation, Wand2,
+  FolderOpen,
 } from 'lucide-react';
 import {
   MODULE_CONFIG_COACH as MODULE_CONFIG, MODULE_CONFIG as MIRROR_MODULES, PIPELINE,
