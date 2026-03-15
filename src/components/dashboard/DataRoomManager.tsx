@@ -62,7 +62,7 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function DataRoomManager({ enterpriseId, enterpriseName, enterpriseSlug: initialSlug }: DataRoomManagerProps) {
+export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpriseName, enterpriseSlug: initialSlug }: DataRoomManagerProps) {
   const [documents, setDocuments] = useState<DataRoomDocument[]>([]);
   const [shares, setShares] = useState<ShareEntry[]>([]);
   const [loading, setLoading] = useState(true);
