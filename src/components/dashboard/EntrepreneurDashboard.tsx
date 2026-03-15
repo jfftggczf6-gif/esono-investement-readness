@@ -1608,6 +1608,20 @@ export default function EntrepreneurDashboard() {
             <Sparkles className="h-4 w-4" /> Régénération complète
           </Button>
         )}
+        {!generating && (
+          <Button
+            size="lg"
+            onClick={handleGenerateAdvanced}
+            disabled={!!generatingAdvanced}
+            className="gap-2 rounded-xl px-4 py-3 h-auto text-xs bg-violet-600 hover:bg-violet-700 text-white shadow-lg"
+          >
+            {generatingAdvanced ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> {generatingAdvanced}…</>
+            ) : (
+              <><Target className="h-4 w-4" /> Modules avancés (Gap, Mémo, Pitch)</>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* ===== MODE SELECTION MODAL (after enterprise creation) ===== */}
