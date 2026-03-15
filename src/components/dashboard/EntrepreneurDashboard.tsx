@@ -300,6 +300,59 @@ export default function EntrepreneurDashboard() {
     }
   };
 
+  const ADVANCED_MODULES = [
+    { code: 'gap_analysis', fn: 'generate-gap-analysis', label: 'Gap Analysis' },
+    { code: 'investment_memo', fn: 'generate-investment-memo', label: 'Mémo Investisseur' },
+    { code: 'onepager', fn: 'generate-deliverables', label: 'One-Pager' },
+    { code: 'pitch_deck', fn: 'generate-pitch-deck', label: 'Pitch Deck' },
+  ];
+
+  const handleGenerateAdvanced = async () => {
+    if (!enterprise) return;
+    setGeneratingAdvanced('starting');
+    let successCount = 0;
+    try {
+      const token = await getValidAccessToken(authSession, navigate);
+      for (const mod of ADVANCED_MODULES) {
+        setGeneratingAdvanced(mod.label);
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), mod.code === 'investment_memo' ? 300000 : 180000);
+          const body: Record<string, string> = { enterprise_id: enterprise.id };
+          if (mod.code === 'onepager') body.type = 'onepager';
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${mod.fn}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(body),
+              signal: controller.signal,
+            }
+          );
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: response.statusText }));
+            toast.error(`${mod.label} : ${err.error || 'Erreur'}`);
+            continue;
+          }
+          const result = await response.json();
+          toast.success(`${mod.label} généré${result.score ? ` — Score: ${result.score}/100` : ''} ✓`);
+          successCount++;
+        } catch (err: any) {
+          toast.error(`${mod.label} : ${err.name === 'AbortError' ? 'Timeout' : err.message}`);
+        }
+      }
+      if (successCount > 0) {
+        toast.success(`${successCount}/${ADVANCED_MODULES.length} modules avancés générés !`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setGeneratingAdvanced(null);
+      await fetchData();
+    }
+  };
+
   const handleGenerateModule = async (moduleCode: string) => {
     if (!enterprise) return;
     setGeneratingModule(moduleCode);
