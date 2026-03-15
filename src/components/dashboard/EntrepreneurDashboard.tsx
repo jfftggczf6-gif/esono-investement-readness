@@ -937,9 +937,9 @@ export default function EntrepreneurDashboard() {
               🎯 {(enterprise as any).readiness_pathway}
             </span>
           )}
-          {enterprise?.operating_mode && enterprise.operating_mode !== 'assisted' && (
+          {(enterprise as any)?.operating_mode && (enterprise as any).operating_mode !== 'assisted' && (
             <span className="px-2 py-0.5 rounded bg-white/10 text-white/70 text-[10px] font-medium border border-white/10">
-              {enterprise.operating_mode === 'reconstruction' ? '🔧 Reconstruction' : '📁 Due Diligence'}
+              {(enterprise as any).operating_mode === 'reconstruction' ? '🔧 Reconstruction' : '📁 Due Diligence'}
             </span>
           )}
           {scoreHistory.length > 1 && (
