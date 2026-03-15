@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  FolderOpen, Upload, FileText, Trash2, Share2, Link, Eye, EyeOff,
+  Upload, FileText, Trash2, Share2, Link, Eye, EyeOff,
   Shield, TrendingUp, Users, Leaf, Building2, AlertTriangle, Loader2, Copy, CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
