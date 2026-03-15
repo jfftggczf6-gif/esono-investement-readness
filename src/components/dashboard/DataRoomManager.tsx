@@ -79,7 +79,7 @@ export default function DataRoomManager({ enterpriseId, enterpriseName: _enterpr
   const ensureSlug = async (): Promise<string> => {
     if (resolvedSlug) return resolvedSlug;
     const generated = `${enterpriseId.slice(0, 8)}-${Date.now().toString(36)}`;
-    await supabase.from('enterprises').update({ data_room_slug: generated, data_room_enabled: true }).eq('id', enterpriseId);
+    await (supabase as any).from('enterprises').update({ data_room_slug: generated, data_room_enabled: true }).eq('id', enterpriseId);
     setResolvedSlug(generated);
     return generated;
   };
