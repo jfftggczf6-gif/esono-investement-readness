@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import {
   Download, CheckCircle2, Clock, Loader2,
   LayoutGrid, Globe, BarChart3,
-  Stethoscope, ListChecks, FileText, Target
+  Stethoscope, ListChecks, FileText, Target,
+  Search, Briefcase, Presentation
 } from 'lucide-react';
 
 const DELIVERABLES = [
