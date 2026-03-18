@@ -293,7 +293,7 @@ export default function ReconstructionUploader({ enterpriseId, onComplete }: Rec
       </Button>
 
       <p className="text-[11px] text-muted-foreground text-center">
-        Les images (JPG, PNG) ne sont pas traitées — utilisez des fichiers PDF ou Excel si possible.
+        Les images et PDF sont analysés par IA pour extraire les données financières.
       </p>
     </div>
   );
