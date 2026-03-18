@@ -17,6 +17,7 @@ const ACCEPTED_TYPES = [
   '.xlsx', '.xls',
   '.docx', '.doc',
   '.pdf',
+  '.jpg', '.jpeg', '.png', '.webp',
 ];
 
 const CONFIDENCE_COLOR = (c: number) => {
