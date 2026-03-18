@@ -245,7 +245,7 @@ export default function ReconstructionUploader({ enterpriseId, onComplete }: Rec
           Relevés bancaires, factures, listes clients, fichiers Excel, tableaux…
         </p>
         <p className="text-[11px] text-muted-foreground/60 mt-2">
-          Formats : CSV, TXT, Excel, Word, PDF — max 10 fichiers
+          Formats : CSV, TXT, Excel, Word, PDF, Images (JPG, PNG) — max 20 fichiers
         </p>
       </div>
 
