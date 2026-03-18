@@ -17,6 +17,7 @@ const ACCEPTED_TYPES = [
   '.xlsx', '.xls',
   '.docx', '.doc',
   '.pdf',
+  '.jpg', '.jpeg', '.png', '.webp',
 ];
 
 const CONFIDENCE_COLOR = (c: number) => {
@@ -56,10 +57,10 @@ export default function ReconstructionUploader({ enterpriseId, onComplete }: Rec
       if (ACCEPTED_TYPES.includes(ext)) {
         valid.push({ name: f.name, size: f.size, file: f });
       } else {
-        toast.warning(`Format non supporté : ${f.name} (images non traitées en Mode Reconstruction)`);
+        toast.warning(`Format non supporté : ${f.name}`);
       }
     });
-    setFiles(prev => [...prev, ...valid].slice(0, 10));
+    setFiles(prev => [...prev, ...valid].slice(0, 20));
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -244,7 +245,7 @@ export default function ReconstructionUploader({ enterpriseId, onComplete }: Rec
           Relevés bancaires, factures, listes clients, fichiers Excel, tableaux…
         </p>
         <p className="text-[11px] text-muted-foreground/60 mt-2">
-          Formats : CSV, TXT, Excel, Word, PDF — max 10 fichiers
+          Formats : CSV, TXT, Excel, Word, PDF, Images (JPG, PNG) — max 20 fichiers
         </p>
       </div>
 
@@ -292,7 +293,7 @@ export default function ReconstructionUploader({ enterpriseId, onComplete }: Rec
       </Button>
 
       <p className="text-[11px] text-muted-foreground text-center">
-        Les images (JPG, PNG) ne sont pas traitées — utilisez des fichiers PDF ou Excel si possible.
+        Les images et PDF sont analysés par IA pour extraire les données financières.
       </p>
     </div>
   );
