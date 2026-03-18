@@ -57,10 +57,10 @@ export default function ReconstructionUploader({ enterpriseId, onComplete }: Rec
       if (ACCEPTED_TYPES.includes(ext)) {
         valid.push({ name: f.name, size: f.size, file: f });
       } else {
-        toast.warning(`Format non supporté : ${f.name} (images non traitées en Mode Reconstruction)`);
+        toast.warning(`Format non supporté : ${f.name}`);
       }
     });
-    setFiles(prev => [...prev, ...valid].slice(0, 10));
+    setFiles(prev => [...prev, ...valid].slice(0, 20));
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
